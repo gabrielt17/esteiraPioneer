@@ -2,20 +2,24 @@
 #define CONTROLLER_H
 
 class Controller {
+
     private:
-        double kp;
-        double ki;
-        double kd; 
-        double i = 0; // Stores the integrative calculations
-        double pwm = 0; // Stores the lastest calculated PWM conversion
+
+        float kp;
+        float ki;
+        float kd; 
+        float i = 0; // Stores the integrative calculations
+        float pwm = 0; // Stores the lastest calculated PWM conversion
         unsigned long previousMicros = 0 ;
-        double previousError = 0;
+        float previousError = 0;
         int accumulated = 0;
+        
     public:
-        Controller(double Kp, double Kd, double Ki);
-        double getControlSignal(int Target, double Measurement);
-        double convertToPWM(double setPoint, double Value);
-        int controlMotor(int Target, int Measurement);
+
+        Controller(float Kp, float Kd, float Ki);
+        float getControlSignal(int Target, float Measurement);
+        int convertToPWM(float Value);
+        int controlMotor(int Target, int Measurem2ent);
 };
 
 
