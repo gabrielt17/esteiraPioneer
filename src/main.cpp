@@ -9,6 +9,7 @@ DISCLAIMER: Tests made using 10-bit resolution PWM
 
 
 #include <Arduino.h>
+#include <Motor.h>
 #include <Controller.h>
 #include "Pins.h"
 

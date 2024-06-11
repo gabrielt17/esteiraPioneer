@@ -5,13 +5,22 @@ class Motor {
     
     private:
 
-        unsigned int IN1 = 0;
-        unsigned int IN2 = 0;
-        int PWM = 0;
+        unsigned int in1 = 0;
+        unsigned int in2 = 0;
+        int pwmpin = 0;
+        int channel = 0;
 
     public:
 
-        void Motor::motorSetup(int In1, int In2, int Pwm);
+        void motorSetup(const int In1, const int In2, const int Pwm, const int Channel);
+        void motorSetup(const int In1, const int In2, const int Pwm);
+        void goAhead(int PWM);
+        void reverse(int PWM);
+        void halt();
+        void turnLeft(int PWM, Motor SecMotor);
+        void turnRight(int PWM, Motor SecMotor);
+        void switchInput();
+
 };
 
 #endif
