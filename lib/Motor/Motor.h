@@ -7,13 +7,13 @@ class Motor {
 
         unsigned int in1 = 0;
         unsigned int in2 = 0;
-        int pwmpin = 0;
+        unsigned int pwmpin = 0;
         int channel = 0;
 
     public:
 
-        void motorSetup(const int In1, const int In2, const int Pwm, const int Channel);
-        void motorSetup(const int In1, const int In2, const int Pwm);
+        Motor(const int In1, const int In2, const int Pwm, const int Channel);
+        Motor(const int In1, const int In2, const int Pwm);
         void goAhead(int PWM);
         void reverse(int PWM);
         void halt();

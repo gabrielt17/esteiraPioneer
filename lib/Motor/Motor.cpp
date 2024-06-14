@@ -3,25 +3,33 @@
 
 // Class constructor
 
-void Motor::motorSetup(const int In1, const int In2, const int Pwm, const int Channel) {
+Motor::Motor(const int In1, const int In2, const int Pwm, const int Channel) {
 	
 	Motor::in1 = In1;
 	Motor::in2 = In2;
 	Motor::pwmpin = Pwm;
 	Motor::channel = Channel;
+
+	pinMode(Motor::in1, OUTPUT);
+	pinMode(Motor::in2, OUTPUT);
+
 	ledcSetup(Motor::channel, 5000, 10);
 	ledcAttachPin(Motor::pwmpin, Motor::channel);
 	
 }
 
-void Motor::motorSetup(const int In1, const int In2, const int Pwm) {
+Motor::Motor(const int In1, const int In2, const int Pwm) {
 	
 	Motor::in1 = In1;
 	Motor::in2 = In2;
 	Motor::pwmpin = Pwm;
 	Motor::channel = 0;
-	ledcSetup(0, 5000, 10);
-	ledcAttachPin(Pwm, 0);
+
+	pinMode(Motor::in1, OUTPUT);
+	pinMode(Motor::in2, OUTPUT);
+
+	ledcSetup(Motor::channel, 5000, 10);
+	ledcAttachPin(Motor::pwmpin, 0);
 
 }
 
