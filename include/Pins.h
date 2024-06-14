@@ -11,9 +11,9 @@ const byte encoderA = 13;
 const byte encoderAPower = 12;
 
 // Motor B
-const byte BIN1 = 5;
-const byte BIN2 = 18;
-const byte PWMB = 19;
+const byte BIN1 = 16;
+const byte BIN2 = 17;
+const byte PWMB = 5;
 const byte encoderB = 27;
 const byte encoderBpower = 25;
 
