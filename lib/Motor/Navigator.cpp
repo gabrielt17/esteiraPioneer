@@ -1,8 +1,9 @@
-#include "Motor.h"
+#include "Navigator.h"
 #include "Arduino.h"
 
-// Class constructor
-
+/** @brief Class contructor.
+* This version of the constructor requires the user to specify the operation channel
+*/
 Motor::Motor(const int In1, const int In2, const int Pwm, const int Channel) {
 	
 	Motor::in1 = In1;
@@ -18,6 +19,9 @@ Motor::Motor(const int In1, const int In2, const int Pwm, const int Channel) {
 	
 }
 
+/** @brief Class contructor.
+* This version of the constructor uses the channel 0 as default
+*/
 Motor::Motor(const int In1, const int In2, const int Pwm) {
 	
 	Motor::in1 = In1;
@@ -33,20 +37,33 @@ Motor::Motor(const int In1, const int In2, const int Pwm) {
 
 }
 
+/** @brief Drives the motor foward.
+ * Negative PWM values will drive the motor in the opposite direction.
+* @param PWM PWM that will be sent to the motor channel.
+*/
 void Motor::goAhead(int PWM) {
 
+	if (PWM < 0) {Motor::reverse(-PWM);}
+	else {
 	digitalWrite(in1, HIGH);
 	digitalWrite(in2, LOW);
 	ledcWrite(Motor::channel, PWM);
+	}
 
 }
 
+/** @brief Drives the motor backwards.
+* Negative PWM values will drive the motor in the opposite direction.
+* @param PWM PWM that will be sent to the motor channel.
+*/
 void Motor::reverse(int PWM) {
 
+	if (PWM < 0) {Motor::goAhead(-PWM);}
+	else {
 	digitalWrite(in1, LOW);
 	digitalWrite(in2, HIGH);
 	ledcWrite(Motor::channel, PWM);
-
+	}
 }
 
 void Motor::halt() {
@@ -76,7 +93,12 @@ void Motor::turnRight(int PWM, Motor SecMotor) {
 
 }
 
-// Switches h-bridge input pins in case they're inverted
+/** @brief
+* 
+*/
+
+
+
 void Motor::switchInput() {
 
 	int temp = Motor::in1;

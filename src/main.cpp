@@ -19,7 +19,7 @@ const byte controllerA_channel = 0;
 const byte resolution = 10;
 
 // Encoder pulse count by rotation
-const int PULSERPERROTATION = 7;
+const int PULSERPERROTATION = 38;
 
 // PID Controller constants
 const double kp = 0.234/5;
@@ -42,7 +42,7 @@ const double ki = 0;
   int pwmA = 0;
   int pwmB = 0;
   float target = 0;
-  double rpmA = 0;
+  float rpmA = 0;
   double rpmB = 0;
 
   // Motor A
@@ -60,7 +60,7 @@ void resetCounterA();
 void pulseCounterB();
 void resetCounterB();
 float getRPMA(const uint8_t, const uint);
-float getRPMB(const uint8_t, const uint);
+float getRPMB(const uint8_t, int);
 void wait(int Time) ;
 
 
@@ -103,7 +103,7 @@ void loop() {
 
   // Time interval needed to get consistent encoder readings
   if ((micros()-previousMicros) > micros_interval) {
-    rpmA = getRPMA(encoderA, PULSERPERROTATION);
+    // rpmA = getRPMA(encoderA, PULSERPERROTATION);
     rpmB = getRPMB(encoderB, PULSERPERROTATION);
   }
 
@@ -113,8 +113,8 @@ void loop() {
 
   // Writes the new PWM value to motor A and gives 50 ms breathing room
   motorA.goAhead(pwmA);
-  motorB.goAhead(255);
-  Serial.printf("Motor A: %3.3f; %3.3f; %d; %d\n",rpmA ,target, 4000, 100);
+  motorB.goAhead(235);
+  // Serial.printf("Motor A: %3.3f; %3.3f; %d; %d\n",rpmA ,target, 4000, 100);
   Serial.printf("Motor B: %3.3f; %3.3f; %d; %d\n", rpmB, target, 4000, 100);
   wait(50);
 }
@@ -154,18 +154,19 @@ float getRPMA(const uint8_t Encoder, const uint PulsesPerRotation) {
   unsigned long deltaMicros = micros() - previousMicros;
   detachInterrupt(digitalPinToInterrupt(Encoder));
   // Serial.printf("\nPulsos antes: %d  ", pulsesA);
-  float rpm = 60.0 * ((pulsesA/PulsesPerRotation)/(float)deltaMicros) * 1e6;
+  float rpm = 60.0 * ((pulsesA/PulsesPerRotation)/static_cast<double>(deltaMicros)) * 1e6;
   attachInterrupt(digitalPinToInterrupt(Encoder), &pulseCounterA, RISING);
   resetCounterA();
   previousMicros = micros();
   return rpm;
 }
 
-float getRPMB(const uint8_t Encoder, const uint PulsesPerRotation) {
+float getRPMB(const uint8_t Encoder, const uint16_t PulsesPerRotation) {
   unsigned long deltaMicros = micros() - previousMicros;
   detachInterrupt(digitalPinToInterrupt(Encoder));
-  // Serial.printf("\nPulsos antes: %d  ", pulsesB);
-  float rpm = 60.0 * ((pulsesB/PulsesPerRotation)/(float)deltaMicros) * 1e6;
+  Serial.printf("\nPulsos antes: %d  \n", pulsesB);
+  float rpm = 60.0 * ((static_cast<float>(pulsesB)/PulsesPerRotation)/static_cast<double>(deltaMicros)) * 1e6;
+  Serial.printf("\nRPMB calculado: %f\n", rpm);
   attachInterrupt(digitalPinToInterrupt(Encoder), &pulseCounterB, RISING);
   resetCounterB();
   previousMicros = micros();

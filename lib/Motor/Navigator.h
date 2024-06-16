@@ -1,6 +1,15 @@
-#ifndef MOTOR_H
-#define MOTOR_H
+#ifndef NAVIGATOR_H
+#define NAVIGATOR_H
 
+/** @brief Motor driver library for ESP32.
+* It uses a 10-bit resolution PWM signal to control the motors.
+*
+* You can especify the ESP32 PWM channel you desire or omit it when 
+*creating a object, which in the last case will use the default 0 channel.
+* @param In1 INI1 H-bridge pin.
+* @param In2 INI2 H-bridge pin.
+* @param Pwm PWM Input H-bridge pin .
+ */
 class Motor {
     
     private:
@@ -9,6 +18,9 @@ class Motor {
         unsigned int in2 = 0;
         unsigned int pwmpin = 0;
         int channel = 0;
+
+        void rotateClockwise();
+        void rotateCounterClockwise();
 
     public:
 
@@ -22,5 +34,7 @@ class Motor {
         void switchInput();
 
 };
+
+
 
 #endif

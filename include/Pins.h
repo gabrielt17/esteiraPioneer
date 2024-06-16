@@ -14,7 +14,7 @@ const byte encoderAPower = 12;
 const byte BIN1 = 16;
 const byte BIN2 = 17;
 const byte PWMB = 5;
-const byte encoderB = 27;
+const byte encoderB = 26;
 const byte encoderBpower = 25;
 
 #endif
