@@ -1,38 +1,29 @@
 #ifndef NAVIGATOR_H
 #define NAVIGATOR_H
 
-/** @brief Navigator driver library for ESP32.
-* It uses a 10-bit resolution PWM signal to control the Navigators.
-*
-* You can especify the ESP32 PWM channel you desire or omit it when 
-*creating a object, which in the last case will use the default 0 channel.
-* @param In1 INI1 H-bridge pin.
-* @param In2 INI2 H-bridge pin.
-* @param Pwm PWM Input H-bridge pin .
+#include "Motor.h"
+
+/** @brief Controls the robot movement.
+* @param lMotor Left motor object from Motor class.
+* @param rMotor Right motor object from Motor class.
  */
 class Navigator {
     
     private:
 
-        unsigned int in1 = 0;
-        unsigned int in2 = 0;
-        unsigned int pwmpin = 0;
-        int channel = 0;
+        Motor& lMotor;
+        Motor& rMotor;
 
-        void rotateClockwise();
-        void rotateCounterClockwise();
+        void Navigator::changeSpeed(const int16_t PWM);
 
     public:
 
-        Navigator(const int In1, const int In2, const int Pwm, const int Channel);
-        Navigator(const int In1, const int In2, const int Pwm);
-        void goAhead(int PWM);
-        void reverse(int PWM);
-        void halt();
-        void turnLeft(int PWM, Navigator SecNavigator);
-        void turnRight(int PWM, Navigator SecNavigator);
-        void switchInput();
-
+        Navigator(Motor& LMOTOR, Motor&  RMOTOR);
+        void Navigator::moveAhead(const int16_t PWM);
+        void Navigator::moveBackwards(const int16_t PWM);
+        void Navigator::halt();
+        void Navigator::turnLeft(const int16_t PWM);
+        void Navigator::turnRight(const int16_t PWM);
 };
 
 #endif // NAVIGATOR_H

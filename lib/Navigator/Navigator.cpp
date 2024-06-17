@@ -2,94 +2,68 @@
 #include "Arduino.h"
 
 /** @brief Class contructor.
-* This version of the constructor requires the user to specify the operation channel
+* Creates the Navigator object
 */
-Navigator::Navigator(const int In1, const int In2, const int Pwm, const int Channel) {
-	
-	Navigator::in1 = In1;
-	Navigator::in2 = In2;
-	Navigator::pwmpin = Pwm;
-	Navigator::channel = Channel;
-
-	pinMode(Navigator::in1, OUTPUT);
-	pinMode(Navigator::in2, OUTPUT);
-
-	ledcSetup(Navigator::channel, 5000, 10);
-	ledcAttachPin(Navigator::pwmpin, Navigator::channel);
-	
+Navigator::Navigator(Motor& LMOTOR, Motor&  RMOTOR) 
+: lMotor(LMOTOR), rMotor(RMOTOR) {
 }
 
-/** @brief Class contructor.
-* This version of the constructor uses the channel 0 as default
+/** @brief Drives the robot foward.
+* Negative PWM values will drive the robot in the opposite direction.
+* @param PWM PWM that will be sent to the PWM channel.
 */
-Navigator::Navigator(const int In1, const int In2, const int Pwm) {
-	
-	Navigator::in1 = In1;
-	Navigator::in2 = In2;
-	Navigator::pwmpin = Pwm;
-	Navigator::channel = 0;
+void Navigator::moveAhead(const int16_t PWM) {
 
-	pinMode(Navigator::in1, OUTPUT);
-	pinMode(Navigator::in2, OUTPUT);
-
-	ledcSetup(Navigator::channel, 5000, 10);
-	ledcAttachPin(Navigator::pwmpin, 0);
-
-}
-
-/** @brief Drives the Navigator foward.
- * Negative PWM values will drive the Navigator in the opposite direction.
-* @param PWM PWM that will be sent to the Navigator channel.
-*/
-void Navigator::goAhead(int PWM) {
-
-	if (PWM < 0) {Navigator::reverse(-PWM);}
+	if (PWM < 0) {Navigator::moveBackwards(-PWM);}
 	else {
-	digitalWrite(in1, HIGH);
-	digitalWrite(in2, LOW);
-	ledcWrite(Navigator::channel, PWM);
+		lMotor.setAntiClockwise();
+		rMotor.setClockwise();
+		Navigator::changeSpeed(PWM);
 	}
 
 }
 
-/** @brief Drives the Navigator backwards.
-* Negative PWM values will drive the Navigator in the opposite direction.
-* @param PWM PWM that will be sent to the Navigator channel.
+/** @brief Drives the robot backwards.
+* Negative PWM values will drive the robot in the opposite direction.
+* @param PWM PWM that will be sent to the PWM channel.
 */
-void Navigator::reverse(int PWM) {
+void Navigator::moveBackwards(const int16_t PWM) {
 
-	if (PWM < 0) {Navigator::goAhead(-PWM);}
+	if (PWM < 0) {Navigator::moveAhead(-PWM);}
 	else {
-	digitalWrite(in1, LOW);
-	digitalWrite(in2, HIGH);
-	ledcWrite(Navigator::channel, PWM);
+		lMotor.setClockwise();
+		rMotor.setAntiClockwise();
+		Navigator::changeSpeed(PWM);
 	}
 }
 
 void Navigator::halt() {
 
-	ledcWrite(Navigator::channel, 0);
+	Navigator::changeSpeed(0);
 }
 
-void Navigator::turnLeft(int PWM, Navigator SecNavigator) {
+void Navigator::turnLeft(const int16_t PWM) {
 
-	digitalWrite(Navigator::in1, HIGH);
-	digitalWrite(Navigator::in2, LOW);
-	digitalWrite(SecNavigator.in1, LOW);
-	digitalWrite(SecNavigator.in2, HIGH);
-	ledcWrite(Navigator::channel, PWM);
-	ledcWrite(SecNavigator.channel, PWM);
-
+	if (PWM < 0) {Navigator::turnRight(-PWM);}
+	else {
+		lMotor.setClockwise();
+		rMotor.setClockwise();
+		Navigator::changeSpeed(PWM);
+	}
 }
 
-void Navigator::turnRight(int PWM, Navigator SecNavigator) {
+void Navigator::turnRight(const int16_t PWM) {
 
-	digitalWrite(Navigator::in1, LOW);
-	digitalWrite(Navigator::in2, HIGH);
-	digitalWrite(SecNavigator.in1, HIGH);
-	digitalWrite(SecNavigator.in2, LOW);
-	ledcWrite(Navigator::channel, PWM);
-	ledcWrite(SecNavigator.channel, PWM);
-
+	if (PWM < 0) {Navigator::turnRight(-PWM);}
+	else {
+		lMotor.setAntiClockwise();
+		rMotor.setAntiClockwise();
+		Navigator::changeSpeed(PWM);
+	}
 }
 
+void Navigator::changeSpeed(const int16_t PWM) {
+
+	lMotor.setSpeed(PWM);
+	rMotor.setSpeed(PWM);
+}
