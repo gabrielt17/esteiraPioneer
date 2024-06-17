@@ -10,6 +10,7 @@ DISCLAIMER: Tests made using 10-bit resolution PWM
 
 #include <Arduino.h>
 #include <Motor.h>
+#include <Navigator.h>
 #include <Controller.h>
 #include "Pins.h"
 
@@ -50,6 +51,8 @@ const double ki = 0;
 
   // Motor B
   Motor motorB(BIN1, BIN2, PWMB, 1);
+
+  Navigator trackbot(motorA, motorB);
 
 // Critical session class object
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
@@ -104,7 +107,7 @@ void loop() {
   // Time interval needed to get consistent encoder readings
   if ((micros()-previousMicros) > micros_interval) {
     // rpmA = getRPMA(encoderA, PULSERPERROTATION);
-    rpmB = getRPMB(encoderB, PULSERPERROTATION);
+    // rpmB = getRPMB(encoderB, PULSERPERROTATION);
   }
 
   // Calculates the new PWM signal to reach the target
@@ -112,8 +115,12 @@ void loop() {
   pwmB = controllerB.controlMotor(target, rpmB);
 
   // Writes the new PWM value to motor A and gives 50 ms breathing room
-  motorA.goAhead(pwmA);
-  motorB.goAhead(235);
+  trackbot.moveBackwards(820);
+  wait(2000);
+  //trackbot.turnLeft(820);
+  wait(2000);
+  //trackbot.turnRight(820);
+  wait(2000);
   // Serial.printf("Motor A: %3.3f; %3.3f; %d; %d\n",rpmA ,target, 4000, 100);
   Serial.printf("Motor B: %3.3f; %3.3f; %d; %d\n", rpmB, target, 4000, 100);
   wait(50);

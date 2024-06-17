@@ -1,10 +1,9 @@
 #include "Motor.h"
-#include "Arduino.h"
 
 /** @brief Class contructor.
 * This version of the constructor requires the user to specify the operation channel
 */
-Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint8_t PWM, const uint8_t CHANNEL)
+Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM, const uint8_t CHANNEL)
 : in1(IN1), in2(IN2), pwmpin(PWM), channel(CHANNEL) {
 	
     Motor::setupArduino();
@@ -14,8 +13,8 @@ Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint8_t PWM, const uint
 /** @brief Class contructor.
 * This version of the constructor uses the channel 0 as default
 */
-Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint8_t PWM) 
-: in1(IN1), in2(IN2), pwmpin(PWM) {
+Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM) 
+: in1(IN1), in2(IN2), pwmpin(PWM), channel(0) {
 
 	Motor::setupArduino();
     Motor::setupLedc();
@@ -57,7 +56,7 @@ void Motor::setupLedc() {
     ledcAttachPin(Motor::pwmpin, Motor::channel);
 }
 
-void Motor::setSpeed(const int PWM) {
+void Motor::setSpeed(const uint16_t PWM) {
 
     ledcWrite(Motor::channel, PWM);
 }

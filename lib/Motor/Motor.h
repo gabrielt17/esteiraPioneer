@@ -1,5 +1,6 @@
 #ifndef MOTOR_H
 #define MOTOR_H
+#include <Arduino.h>
 
 /** @brief H-bridge motor driver library for ESP32.
 * It uses a 10-bit resolution PWM signal to control the motors.
@@ -17,7 +18,7 @@ class Motor {
 
         uint8_t in1 = 0;
         uint8_t in2 = 0;
-        uint8_t pwmpin = 0;
+        uint16_t pwmpin = 0;
         uint8_t channel = 0;
 
         void setupArduino();
@@ -25,13 +26,13 @@ class Motor {
 
     public:
 
-        Motor(const uint8_t IN1, const uint8_t IN2, const uint8_t PWM, const uint8_t CHANNEL);
-        Motor(const uint8_t IN1, const uint8_t IN2, const uint8_t PWM);
+        Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM, const uint8_t CHANNEL);
+        Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM);
         
-        void Motor::switchInput();
-        void Motor::setClockwise();
-        void Motor::setAntiClockwise();
-        void Motor::setSpeed(const int PWM);
+        void switchInput();
+        void setClockwise();
+        void setAntiClockwise();
+        void setSpeed(const uint16_t PWM);
 
 };
 

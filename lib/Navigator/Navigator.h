@@ -14,16 +14,16 @@ class Navigator {
         Motor& lMotor;
         Motor& rMotor;
 
-        void Navigator::changeSpeed(const int16_t PWM);
+        void changeSpeed(const int PWM);
 
     public:
 
-        Navigator(Motor& LMOTOR, Motor&  RMOTOR);
-        void Navigator::moveAhead(const int16_t PWM);
-        void Navigator::moveBackwards(const int16_t PWM);
-        void Navigator::halt();
-        void Navigator::turnLeft(const int16_t PWM);
-        void Navigator::turnRight(const int16_t PWM);
+        Navigator(Motor& LMOTOR, Motor& RMOTOR);
+        void moveAhead(const int PWM);
+        void moveBackwards(const int PWM);
+        void halt();
+        void turnLeft(const int PWM);
+        void turnRight(const int PWM);
 };
 
 #endif // NAVIGATOR_H
