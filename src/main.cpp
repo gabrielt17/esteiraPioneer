@@ -12,6 +12,7 @@ DISCLAIMER: Tests made using 10-bit resolution PWM
 #include <Motor.h>
 #include <Navigator.h>
 #include <Controller.h>
+#include <Encoder.h>
 #include "Pins.h"
 
 // PWM related values
@@ -63,7 +64,7 @@ void resetCounterA();
 void pulseCounterB();
 void resetCounterB();
 float getRPMA(const uint8_t, const uint);
-float getRPMB(const uint8_t, int);
+float getRPMB(const uint8_t, const uint);
 void wait(int Time) ;
 
 
@@ -116,11 +117,6 @@ void loop() {
 
   // Writes the new PWM value to motor A and gives 50 ms breathing room
   trackbot.moveBackwards(820);
-  wait(2000);
-  //trackbot.turnLeft(820);
-  wait(2000);
-  //trackbot.turnRight(820);
-  wait(2000);
   // Serial.printf("Motor A: %3.3f; %3.3f; %d; %d\n",rpmA ,target, 4000, 100);
   Serial.printf("Motor B: %3.3f; %3.3f; %d; %d\n", rpmB, target, 4000, 100);
   wait(50);
