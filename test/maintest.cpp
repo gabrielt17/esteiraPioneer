@@ -1,25 +1,28 @@
+#include <Encoder.h>
 #include <Pins.h>
-#include <ISR.h>
 
-ISR test;
+const int interval = 300000;
 
-void wait(int Time);
+Encoder encoder(encoderApin, 38, encoderAPower); // Exemplo de pinos
+
+void test();
 
 void setup() {
     Serial.begin(115200);
-
+    attachInterrupt(digitalPinToInterrupt(encoderApin), test, RISING);
 }
 
 void loop() {
-
-    Serial.println("Parce que deu certo");
-    Serial.println("Valor de counter: " + test.counter);
-    wait(500);
+    if ((micros() - encoder.previousMicros) > interval) {
+      detachInterrupt(digitalPinToInterrupt(encoderApin));
+      encoder.calculateRPM();
+      attachInterrupt(digitalPinToInterrupt(encoderApin), test, RISING);
+    }
+    
+    Serial.println(encoder.getRPM());
+    delay(1000);
 }
 
-// Delay function that doesn't engage sleep mode
-void wait(int time) {
-  int lasttime = millis();
-  while ((millis() - lasttime) <= time) {
-  }
+void test() {
+  encoder.addToCounter();
 }

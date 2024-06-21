@@ -32,7 +32,7 @@ const double ki = 0;
   
   // Time
   unsigned long previousMicros = 0;
-  const int micros_interval = 300000;
+  const int calculate_interval = 300000;
 
   // Controller
   Controller controllerA(kp, kd, ki);
@@ -47,14 +47,16 @@ const double ki = 0;
   // Robot movement
   Navigator trackbot(lmotor, rmotor);
 
-  // Encoder
-  Encoder encoderA(encoderApin, PULSERPERROTATION, encoderAPower);
+  // Encoder A (LEFT)
+  Encoder lencoder(encoderAChannel1, PULSERPERROTATION);
   
+  // Encoder B (RIGHT)
+  Encoder rencoder(encoderBChannel2, PULSERPERROTATION);
 
 // Function prototypes (declarations)
 void wait(int Time);
-
-void isr();
+void IRAM_ATTR lencoderCounter();
+void IRAM_ATTR rencoderCounter();
 
 
 void setup() {
@@ -62,20 +64,59 @@ void setup() {
   // Initalizing serial
   Serial.begin(115200);
 
+  pinMode(25, OUTPUT);
+  digitalWrite(25, HIGH);
+
+  // Attach encoder ISR's
+  attachInterrupt(digitalPinToInterrupt(encoderAChannel1), &lencoderCounter, RISING);
+  attachInterrupt(digitalPinToInterrupt(encoderBChannel2), &rencoderCounter, RISING);
+
 }
 
 void loop() {
 
-  if ((micros() - encoderA.previousMicros) > micros_interval) {
-    encoderA.calculateRPM();
-  } 
-  float currentRPM = encoderA.getRPM();
-  Serial.printf("\nRPM: %3.3f\n", currentRPM);
+  if ((micros() - lencoder.previousMicros) > calculate_interval) {
+    detachInterrupt(encoderAChannel1);
+    detachInterrupt(encoderBChannel2);
+    lencoder.calculateRPM();
+    attachInterrupt(digitalPinToInterrupt(encoderAChannel1), &lencoderCounter, RISING);
+    attachInterrupt(digitalPinToInterrupt(encoderBChannel2), &rencoderCounter, RISING);
+  }
+  if ((micros() - rencoder.previousMicros) > calculate_interval) {
+    detachInterrupt(encoderBChannel2);
+    detachInterrupt(encoderAChannel1);
+    rencoder.calculateRPM();
+    attachInterrupt(digitalPinToInterrupt(encoderBChannel2), &rencoderCounter, RISING);
+    attachInterrupt(digitalPinToInterrupt(encoderAChannel1), &lencoderCounter, RISING);
+  }
+
+  float currentlRPM = lencoder.getRPM();
+  float currentrRPM = rencoder.getRPM();
+  Serial.print("PULSOS L: ");
+  Serial.println(lencoder.pulses);
+  Serial.print("PULSOS R: ");
+  Serial.println(rencoder.pulses);
+  Serial.print("LEFT RPM: ");
+  Serial.println(currentlRPM);
+  Serial.print("RIGHT RPM: ");
+  Serial.println(currentrRPM);
+  Serial.print("PINO ENCODER A: ");
+  Serial.println(lencoder.encoderPin);
+  Serial.print("PINO ENCODER B: ");
+  Serial.println(rencoder.encoderPin);
   trackbot.moveAhead(820);
   wait(50);
 }
 
 /* Function definitions*/
+
+void lencoderCounter() {
+  lencoder.pulses++;
+}
+
+void rencoderCounter() {
+  rencoder.pulses++;
+}
 
 // Delay function that doesn't engage sleep mode
 void wait(int time) {
