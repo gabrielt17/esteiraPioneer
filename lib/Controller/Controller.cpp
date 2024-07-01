@@ -56,7 +56,10 @@ int Controller::convertToPWM(float Value) {
     return static_cast<int>(pwm);
 }
 
-// Combines the previous methods into one. Accumulates the 
+/** @brief
+ * Combines the previous methods into one. Accumulates the control singal.
+ *  
+ */ 
 int Controller::controlMotor(int Target, int Measurement) {
 
     Controller::accumulated += Controller::convertToPWM(Controller::getControlSignal(Target, Measurement));

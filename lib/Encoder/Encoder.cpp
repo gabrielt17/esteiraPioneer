@@ -11,7 +11,7 @@ Encoder::Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, con
 
 // Construtor sem pino de alimentação
 Encoder::Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION)
-: encoderPin(ENCODERPIN), powerPin(0), pulses(0), rpm(0), previousMicros(0) {
+: encoderPin(ENCODERPIN), powerPin(0), pulses(0), rpm(0), previousMicros(0), pulsesPerRotation(PULSESPEROTATION) {
     Encoder::setupArduino(false, 0);
 }
 
@@ -26,14 +26,22 @@ void Encoder::setupArduino(bool POWER, uint8_t POWERPIN) {
 
 // Calcula o RPM
 void Encoder::calculateRPM() {
+
     unsigned long currentMicros = micros();
     unsigned long deltaMicros = currentMicros - Encoder::previousMicros;
-    // Calcula o RPM
-    if (deltaMicros > 0) { // Evitar divisão por zero
-        Encoder::rpm = 60.0 * (static_cast<float>(Encoder::pulses) / Encoder::pulsesPerRotation) / (static_cast<double>(deltaMicros) / 1e6);
+    
+    if (pulsesPerRotation == 0) {
+        Serial.println("Erro: pulsesPerRotation é zero!");
+        Encoder::rpm = 0;
+        return;
+    }
+
+    if (deltaMicros > 0) {
+        Encoder::rpm = 60.0 * (static_cast<double>(Encoder::pulses)/Encoder::pulsesPerRotation) / (static_cast<double>(deltaMicros)/1e6);
     } else {
         Encoder::rpm = 0;
     }
+
     Encoder::resetCounter();
     Encoder::previousMicros = currentMicros;
 }

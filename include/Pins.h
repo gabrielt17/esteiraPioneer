@@ -18,9 +18,9 @@ const byte PWMB = 5;
 const byte encoderBChannel1 = 34;
 const byte encoderBChannel2 = 35;
 
-// MPU6050
-const byte SCL = 23;
-const byte SDA = 22;
+// // MPU6050
+// const byte SCL = 23;
+// const byte SDA = 22;
 
 // Ultrassonic sensor: GPIO21 and GPIO22
 

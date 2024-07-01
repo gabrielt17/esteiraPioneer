@@ -24,15 +24,17 @@ const byte resolution = 10;
 const int PULSERPERROTATION = 38;
 
 // PID Controller constants
-const double kp = 0.234/5;
-const double kd = 0.234/40;
+const double kp = 0.746/2;
+const double kd = 0.746/40;
 const double ki = 0;
 
 // Global variables
   
   // Time
   unsigned long previousMicros = 0;
-  const int calculate_interval = 300000;
+  const int calculate_interval = 150000;
+
+  unsigned long currentMicrosA, currentMicrosB = 0;
 
   // Controller
   Controller controllerA(kp, kd, ki);
@@ -51,7 +53,7 @@ const double ki = 0;
   Encoder lencoder(encoderAChannel1, PULSERPERROTATION);
   
   // Encoder B (RIGHT)
-  Encoder rencoder(encoderBChannel2, PULSERPERROTATION);
+  Encoder rencoder(encoderBChannel1, PULSERPERROTATION);
 
 // Function prototypes (declarations)
 void wait(int Time);
@@ -75,14 +77,20 @@ void setup() {
 
 void loop() {
 
+  float target = 400*cos(2*M_PI*4.5*micros()/10e6)+500;
+  //float target = 33;
+
   if ((micros() - lencoder.previousMicros) > calculate_interval) {
+    currentMicrosA = micros();
     detachInterrupt(encoderAChannel1);
     detachInterrupt(encoderBChannel2);
     lencoder.calculateRPM();
     attachInterrupt(digitalPinToInterrupt(encoderAChannel1), &lencoderCounter, RISING);
     attachInterrupt(digitalPinToInterrupt(encoderBChannel2), &rencoderCounter, RISING);
   }
+
   if ((micros() - rencoder.previousMicros) > calculate_interval) {
+    currentMicrosB = micros();
     detachInterrupt(encoderBChannel2);
     detachInterrupt(encoderAChannel1);
     rencoder.calculateRPM();
@@ -90,21 +98,14 @@ void loop() {
     attachInterrupt(digitalPinToInterrupt(encoderAChannel1), &lencoderCounter, RISING);
   }
 
-  float currentlRPM = lencoder.getRPM();
-  float currentrRPM = rencoder.getRPM();
-  Serial.print("PULSOS L: ");
-  Serial.println(lencoder.pulses);
-  Serial.print("PULSOS R: ");
-  Serial.println(rencoder.pulses);
-  Serial.print("LEFT RPM: ");
-  Serial.println(currentlRPM);
-  Serial.print("RIGHT RPM: ");
-  Serial.println(currentrRPM);
-  Serial.print("PINO ENCODER A: ");
-  Serial.println(lencoder.encoderPin);
-  Serial.print("PINO ENCODER B: ");
-  Serial.println(rencoder.encoderPin);
-  trackbot.moveAhead(820);
+  int currentlRPM = lencoder.getRPM();
+  int currentrRPM = rencoder.getRPM();
+
+  int pwm = controllerA.controlMotor(target, currentlRPM);
+
+  Serial.printf("%d; %d; %3.3f; %d; %d\n", 1500, 30, target, currentlRPM, pwm);
+
+  trackbot.moveAhead(pwm);
   wait(50);
 }
 
