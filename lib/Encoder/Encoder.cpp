@@ -4,14 +4,14 @@
 /** @brief Construtor que leva em consideração a existência de um pino
  *de alimentação.
  */
-Encoder::Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, const uint8_t& POWERPIN) 
-: encoderPin(ENCODERPIN), pulsesPerRotation(PULSESPEROTATION), powerPin(POWERPIN), pulses(0), rpm(0), previousMicros(0) {
+Encoder::Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, Motor& MOTOR, const uint8_t& POWERPIN)
+: encoderPin(ENCODERPIN), pulsesPerRotation(PULSESPEROTATION), powerPin(POWERPIN), pulses(0), rpm(0), previousMicros(0), motor(MOTOR) {
     Encoder::setupArduino(true, Encoder::powerPin);
 }
 
 // Construtor sem pino de alimentação
-Encoder::Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION)
-: encoderPin(ENCODERPIN), powerPin(0), pulses(0), rpm(0), previousMicros(0), pulsesPerRotation(PULSESPEROTATION) {
+Encoder::Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, Motor& MOTOR)
+: encoderPin(ENCODERPIN), powerPin(0), pulses(0), rpm(0), previousMicros(0), pulsesPerRotation(PULSESPEROTATION), motor(MOTOR) {
     Encoder::setupArduino(false, 0);
 }
 
@@ -29,19 +29,17 @@ void Encoder::calculateRPM() {
 
     unsigned long currentMicros = micros();
     unsigned long deltaMicros = currentMicros - Encoder::previousMicros;
-    
-    if (pulsesPerRotation == 0) {
-        Serial.println("Erro: pulsesPerRotation é zero!");
-        Encoder::rpm = 0;
-        return;
-    }
 
     if (deltaMicros > 0) {
         Encoder::rpm = 60.0 * (static_cast<double>(Encoder::pulses)/Encoder::pulsesPerRotation) / (static_cast<double>(deltaMicros)/1e6);
     } else {
         Encoder::rpm = 0;
     }
+    if (motor.isClockwise) {
 
+    } else {
+        Encoder::rpm = -Encoder::rpm;
+    }
     Encoder::resetCounter();
     Encoder::previousMicros = currentMicros;
 }

@@ -2,6 +2,7 @@
 #define ENCODER_H
 
 #include <Arduino.h>
+#include <Motor.h>
 
 /**
  * @param ENCODERPIN Encoder signal pin
@@ -16,6 +17,7 @@ class Encoder {
         const uint8_t powerPin;
         uint pulsesPerRotation;
         float rpm;
+        Motor motor;
         
 
 
@@ -24,8 +26,8 @@ class Encoder {
     public:
         unsigned long previousMicros = 0;
         const uint8_t encoderPin;
-        Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, const uint8_t& POWERPIN);
-        Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION);
+        Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, Motor& MOTOR, const uint8_t& POWERPIN);
+        Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, Motor& MOTOR);
         void calculateRPM();
         float getRPM();
         void resetCounter();
