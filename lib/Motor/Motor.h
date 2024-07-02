@@ -34,7 +34,7 @@ class Motor {
         void setAntiClockwise();
         void setSpeed(const uint16_t PWM);
 
-        bool isClockwise;
+        bool isNegative;
 
 };
 

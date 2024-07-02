@@ -35,18 +35,17 @@ void Encoder::calculateRPM() {
     } else {
         Encoder::rpm = 0;
     }
-    if (motor.isClockwise) {
-
-    } else {
-        Encoder::rpm = -Encoder::rpm;
-    }
     Encoder::resetCounter();
     Encoder::previousMicros = currentMicros;
 }
 
 // Retorna o RPM
 float Encoder::getRPM() {
-    return Encoder::rpm;
+    if (motor.isNegative) {
+        return -Encoder::rpm;
+    } else {
+        return Encoder::rpm;
+    }
 }
 
 void Encoder::resetCounter() {

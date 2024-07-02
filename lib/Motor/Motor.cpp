@@ -25,7 +25,6 @@ void Motor::setClockwise() {
 
     digitalWrite(Motor::in1, HIGH);
     digitalWrite(Motor::in2, LOW);
-    Motor::isClockwise = true;
 }
 
 /// @brief Sets the motor rotation to anti-clockwise
@@ -33,7 +32,6 @@ void Motor::setAntiClockwise() {
 
     digitalWrite(Motor::in1, LOW);
     digitalWrite(Motor::in2, HIGH);
-    Motor::isClockwise = false;
 }
 
 /// @brief Switches the IN1 and IN2 pins between themselves
