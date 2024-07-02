@@ -14,7 +14,7 @@ class Navigator {
         Motor& lMotor;
         Motor& rMotor;
 
-        void changeSpeed(const int PWM);
+        void changeSpeed(const int lPWM, const int rPWM);
 
     public:
 
@@ -22,8 +22,8 @@ class Navigator {
         void moveAhead(const int PWM);
         void moveBackwards(const int PWM);
         void halt();
-        void turnLeft(const int PWM);
-        void turnRight(const int PWM);
+        void turnLeft(const int lPWM, const int rPWM);
+        void turnRight(const int lPWM, const int rPWM);
 };
 
 #endif // NAVIGATOR_H

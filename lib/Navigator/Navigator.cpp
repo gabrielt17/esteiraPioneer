@@ -20,7 +20,7 @@ void Navigator::moveAhead(const int PWM) {
 		rMotor.isNegative = false;
 		lMotor.setAntiClockwise();
 		rMotor.setClockwise();
-		Navigator::changeSpeed(PWM);
+		Navigator::changeSpeed(PWM, PWM);
 	}
 
 }
@@ -37,41 +37,41 @@ void Navigator::moveBackwards(const int PWM) {
 		rMotor.isNegative = true;
 		lMotor.setClockwise();
 		rMotor.setAntiClockwise();
-		Navigator::changeSpeed(PWM);
+		Navigator::changeSpeed(PWM, PWM);
 	}
 }
 
 void Navigator::halt() {
 
-	Navigator::changeSpeed(0);
+	Navigator::changeSpeed(0, 0);
 }
 
-void Navigator::turnLeft(const int PWM) {
+void Navigator::turnLeft(const int lPWM, const int rPWM) {
 
-	if (PWM < 0) {Navigator::turnRight(-PWM);}
+	if ((lPWM && rPWM) < 0) {Navigator::turnRight(-lPWM, -rPWM);}
 	else {
 		lMotor.isNegative = true;
 		rMotor.isNegative = false;
 		lMotor.setClockwise();
 		rMotor.setClockwise();
-		Navigator::changeSpeed(PWM);
+		Navigator::changeSpeed(lPWM, rPWM);
 	}
 }
 
-void Navigator::turnRight(const int PWM) {
+void Navigator::turnRight(const int lPWM, const int rPWM) {
 
-	if (PWM < 0) {Navigator::turnRight(-PWM);}
+	if ((lPWM && rPWM) < 0) {Navigator::turnRight(-lPWM, -rPWM);}
 	else {
 		lMotor.isNegative = false;
 		rMotor.isNegative = true;
 		lMotor.setAntiClockwise();
 		rMotor.setAntiClockwise();
-		Navigator::changeSpeed(PWM);
+		Navigator::changeSpeed(lPWM, rPWM);
 	}
 }
 
-void Navigator::changeSpeed(const int PWM) {
+void Navigator::changeSpeed(const int lPWM, const int rPWM) {
 
-	lMotor.setSpeed(PWM);
-	rMotor.setSpeed(PWM);
+	lMotor.setSpeed(lPWM);
+	rMotor.setSpeed(rPWM);
 }
