@@ -41,11 +41,7 @@ void Encoder::calculateRPM() {
 
 // Retorna o RPM
 float Encoder::getRPM() {
-    if (motor.isNegative) {
-        return -Encoder::rpm;
-    } else {
-        return Encoder::rpm;
-    }
+    return Encoder::rpm;
 }
 
 void Encoder::resetCounter() {

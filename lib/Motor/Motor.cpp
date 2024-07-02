@@ -23,6 +23,7 @@ Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM)
 /// @brief Sets the motor rotation to clockwise
 void Motor::setClockwise() {
 
+    Motor::isClockwise = true;
     digitalWrite(Motor::in1, HIGH);
     digitalWrite(Motor::in2, LOW);
 }
@@ -30,6 +31,7 @@ void Motor::setClockwise() {
 /// @brief Sets the motor rotation to anti-clockwise
 void Motor::setAntiClockwise() {
 
+    Motor::isClockwise = false;
     digitalWrite(Motor::in1, LOW);
     digitalWrite(Motor::in2, HIGH);
 }
@@ -58,5 +60,8 @@ void Motor::setupLedc() {
 
 void Motor::setSpeed(const uint16_t PWM) {
 
-    ledcWrite(Motor::channel, PWM);
+    if (isClockwise) {ledcWrite(Motor::channel, PWM);}
+    else {
+        ledcWrite(Motor::channel, -PWM);
+    }
 }

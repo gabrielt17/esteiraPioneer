@@ -74,8 +74,8 @@ void setup() {
 
 void loop() {
 
-  float lTarget = 400*cos(2*M_PI*4.5*micros()/10e6);
-  float rTarget = -400*cos(2*M_PI*4.5*micros()/10e6);
+  float lTarget = 400;
+  // float rTarget = -400*cos(2*M_PI*0.5*micros()/10e6);
 
   if ((micros() - lencoder.previousMicros) > calculate_interval) {
     currentMicrosA = micros();
@@ -96,15 +96,16 @@ void loop() {
   }
 
   int currentlRPM = lencoder.getRPM();
-  int currentrRPM = rencoder.getRPM();
+  // int currentrRPM = rencoder.getRPM();
 
-  int lpwm = lcontroller.controlMotor(lTarget, currentlRPM);
-  int rpwm = rcontroller.controlMotor(rTarget, currentrRPM);
+  int lpwm = lcontroller.controlMotor(400, currentlRPM);
+  // int rpwm = rcontroller.controlMotor(rTarget, currentrRPM);
 
-  Serial.printf("%d; %d; %3.3f; %d; %3.3f; %d\n", 1500, 30, lTarget, currentlRPM, rTarget, currentrRPM);
+  Serial.printf("%d; %d; %3.3f; %d; %d\n", 1500, 30, lTarget, currentlRPM, lpwm);
 
   
-  trackbot.turnLeft(lpwm, rpwm);
+  lmotor.setAntiClockwise();
+  lmotor.setSpeed(400);
 
 }
 
