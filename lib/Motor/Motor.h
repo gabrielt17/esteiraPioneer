@@ -26,13 +26,13 @@ class Motor {
 
     public:
 
-        Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM, const uint8_t CHANNEL);
-        Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM);
+        Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWMPIN, const uint8_t CHANNEL);
+        Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWMPIN);
         
         void switchInput();
         void setClockwise();
         void setAntiClockwise();
-        void setSpeed(const uint16_t PWM);
+        void setSpeed(const int16_t PWM);
 
         bool isClockwise;
 

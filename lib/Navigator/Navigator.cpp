@@ -12,13 +12,12 @@ Navigator::Navigator(Motor& LMOTOR, Motor&  RMOTOR)
 * Negative PWM values will drive the robot in the opposite direction.
 * @param PWM PWM that will be sent to the PWM channel.
 */
-void Navigator::moveAhead(const int PWM) {
+void Navigator::moveAhead(const int16_t PWM) {
 
-	if (PWM < 0) {Navigator::moveBackwards(-PWM);}
-	else {
-		lMotor.setAntiClockwise();
-		rMotor.setClockwise();
-		Navigator::changeSpeed(PWM, PWM);
+	if (PWM < 0) {
+		Navigator::moveBackwards(-PWM);
+	} else {
+		Navigator::changeSpeed(PWM, -PWM);
 	}
 
 }
@@ -27,13 +26,11 @@ void Navigator::moveAhead(const int PWM) {
 * Negative PWM values will drive the robot in the opposite direction.
 * @param PWM PWM that will be sent to the PWM channel.
 */
-void Navigator::moveBackwards(const int PWM) {
+void Navigator::moveBackwards(const int16_t PWM) {
 
 	if (PWM < 0) {Navigator::moveAhead(-PWM);}
 	else {
-		lMotor.setClockwise();
-		rMotor.setAntiClockwise();
-		Navigator::changeSpeed(PWM, PWM);
+		Navigator::changeSpeed(-PWM, PWM);
 	}
 }
 
@@ -42,23 +39,26 @@ void Navigator::halt() {
 	Navigator::changeSpeed(0, 0);
 }
 
-void Navigator::turnLeft(const int lPWM, const int rPWM) {
+void Navigator::turnLeft(const int16_t lPWM, const int16_t rPWM) {
 
-	if ((lPWM && rPWM) < 0) {Navigator::turnRight(-lPWM, -rPWM);}
-	else {
-		lMotor.setClockwise();
-		rMotor.setClockwise();
-		Navigator::changeSpeed(lPWM, rPWM);
+	uint16_t lpwm = fabs(lPWM);
+	uint16_t rpwm = fabs(rPWM);
+	if ((lPWM && rPWM) < 0) {
+		Navigator::turnRight(-lPWM, -rPWM);
+	} else {
+		Navigator::changeSpeed(-lpwm, -rpwm);
 	}
 }
 
-void Navigator::turnRight(const int lPWM, const int rPWM) {
+void Navigator::turnRight(const int16_t lPWM, const int16_t rPWM) {
 
-	if ((lPWM && rPWM) < 0) {Navigator::turnRight(-lPWM, -rPWM);}
-	else {
-		lMotor.setAntiClockwise();
-		rMotor.setAntiClockwise();
-		Navigator::changeSpeed(lPWM, rPWM);
+	uint16_t lpwm = fabs(lPWM);
+	uint16_t rpwm = fabs(rPWM);
+	Serial.printf("%d; %d\n", lpwm, rpwm);
+	if ((lPWM && rPWM) < 0) {
+		Navigator::turnRight(-lPWM, -rPWM);
+	} else {
+		Navigator::changeSpeed(lpwm, rpwm);
 	}
 }
 

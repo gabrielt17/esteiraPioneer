@@ -16,8 +16,8 @@ class Encoder {
         
         const uint8_t powerPin;
         uint pulsesPerRotation;
-        float rpm;
-        Motor motor;
+        int rpm;
+        Motor& motor;
         
 
 
@@ -29,7 +29,7 @@ class Encoder {
         Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, Motor& MOTOR, const uint8_t& POWERPIN);
         Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, Motor& MOTOR);
         void calculateRPM();
-        float getRPM();
+        int getRPM();
         void resetCounter();
         volatile uint pulses;
 };

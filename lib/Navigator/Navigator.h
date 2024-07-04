@@ -19,11 +19,11 @@ class Navigator {
     public:
 
         Navigator(Motor& LMOTOR, Motor& RMOTOR);
-        void moveAhead(const int PWM);
-        void moveBackwards(const int PWM);
+        void moveAhead(const int16_t PWM);
+        void moveBackwards(const int16_t PWM);
         void halt();
-        void turnLeft(const int lPWM, const int rPWM);
-        void turnRight(const int lPWM, const int rPWM);
+        void turnLeft(const int16_t lPWM, const int16_t rPWM);
+        void turnRight(const int16_t lPWM, const int16_t rPWM);
 };
 
 #endif // NAVIGATOR_H

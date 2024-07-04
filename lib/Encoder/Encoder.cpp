@@ -29,7 +29,7 @@ void Encoder::calculateRPM() {
 
     unsigned long currentMicros = micros();
     unsigned long deltaMicros = currentMicros - Encoder::previousMicros;
-
+    
     if (deltaMicros > 0) {
         Encoder::rpm = 60.0 * (static_cast<double>(Encoder::pulses)/Encoder::pulsesPerRotation) / (static_cast<double>(deltaMicros)/1e6);
     } else {
@@ -40,8 +40,14 @@ void Encoder::calculateRPM() {
 }
 
 // Retorna o RPM
-float Encoder::getRPM() {
-    return Encoder::rpm;
+int Encoder::getRPM() {
+
+    if (motor.isClockwise == true) {
+        Serial.println("SOU TRUE");
+        return -Encoder::rpm;
+    } else {
+        return Encoder::rpm;
+    }
 }
 
 void Encoder::resetCounter() {

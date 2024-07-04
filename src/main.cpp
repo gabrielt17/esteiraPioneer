@@ -50,10 +50,12 @@ const double ki = 0;
   Navigator trackbot(lmotor, rmotor);
 
   // Encoder A (LEFT)
-  Encoder lencoder(encoderAChannel1, PULSERPERROTATION, lmotor);
+  Encoder lencoder(encoderAChannel2, PULSERPERROTATION, lmotor);
   
   // Encoder B (RIGHT)
   Encoder rencoder(encoderBChannel1, PULSERPERROTATION, rmotor);
+
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 // Function prototypes (declarations)
 void wait(int Time);
@@ -67,56 +69,58 @@ void setup() {
   Serial.begin(115200);
 
   // Attach encoder ISR's
-  attachInterrupt(digitalPinToInterrupt(encoderAChannel1), &lencoderCounter, RISING);
-  attachInterrupt(digitalPinToInterrupt(encoderBChannel2), &rencoderCounter, RISING);
-
+  attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
+  attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
 }
 
 void loop() {
 
-  float lTarget = 400;
-  // float rTarget = -400*cos(2*M_PI*0.5*micros()/10e6);
+  // float lTarget = 400;
+  float rTarget = 400;
 
   if ((micros() - lencoder.previousMicros) > calculate_interval) {
     currentMicrosA = micros();
-    detachInterrupt(encoderAChannel1);
-    detachInterrupt(encoderBChannel2);
+    detachInterrupt(encoderAChannel2);
+    detachInterrupt(encoderBChannel1);
     lencoder.calculateRPM();
-    attachInterrupt(digitalPinToInterrupt(encoderAChannel1), &lencoderCounter, RISING);
-    attachInterrupt(digitalPinToInterrupt(encoderBChannel2), &rencoderCounter, RISING);
+    attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
+    attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
   }
 
   if ((micros() - rencoder.previousMicros) > calculate_interval) {
     currentMicrosB = micros();
-    detachInterrupt(encoderBChannel2);
-    detachInterrupt(encoderAChannel1);
+    detachInterrupt(encoderBChannel1);
+    detachInterrupt(encoderAChannel2);
     rencoder.calculateRPM();
-    attachInterrupt(digitalPinToInterrupt(encoderBChannel2), &rencoderCounter, RISING);
-    attachInterrupt(digitalPinToInterrupt(encoderAChannel1), &lencoderCounter, RISING);
+    attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
+    attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
   }
 
   int currentlRPM = lencoder.getRPM();
-  // int currentrRPM = rencoder.getRPM();
+  int currentrRPM = rencoder.getRPM();
 
-  int lpwm = lcontroller.controlMotor(400, currentlRPM);
+  // int lpwm = lcontroller.controlMotor(lTarget, currentlRPM);
   // int rpwm = rcontroller.controlMotor(rTarget, currentrRPM);
 
-  Serial.printf("%d; %d; %3.3f; %d; %d\n", 1500, 30, lTarget, currentlRPM, lpwm);
+  // Serial.printf("%d; %d; %3.3f; %d; %d\n", 1500, 30, rTarget, currentrRPM, rpwm);
+  Serial.printf("LRPM: %d; RRPM: %d\n", currentlRPM, currentrRPM);
 
+  trackbot.moveAhead(400);
   
-  lmotor.setAntiClockwise();
-  lmotor.setSpeed(400);
-
 }
 
 /* Function definitions*/
 
-void lencoderCounter() {
+void IRAM_ATTR lencoderCounter() {
+  portENTER_CRITICAL_ISR(&mux);
   lencoder.pulses++;
+  portEXIT_CRITICAL_ISR(&mux);
 }
 
-void rencoderCounter() {
+void IRAM_ATTR rencoderCounter() {
+  portENTER_CRITICAL_ISR(&mux);
   rencoder.pulses++;
+  portEXIT_CRITICAL_ISR(&mux);
 }
 
 // Delay function that doesn't engage sleep mode
