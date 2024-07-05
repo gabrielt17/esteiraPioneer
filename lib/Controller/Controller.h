@@ -19,7 +19,7 @@ class Controller {
         Controller(float Kp, float Kd, float Ki);
         float getControlSignal(int Target, float Measurement);
         int convertToPWM(float Value);
-        int controlMotor(int Target, int Measurem2ent);
+        int controlMotor(int Target, float Measurement);
 };
 
 

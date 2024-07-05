@@ -24,8 +24,8 @@ const byte resolution = 10;
 const int PULSERPERROTATION = 38;
 
 // PID Controller constants
-const double kp = 0.746/2;
-const double kd = 0.746/40;
+const double kp = 0.746/50;
+const double kd = 0.746/300;
 const double ki = 0;
 
 // Global variables
@@ -47,7 +47,7 @@ const double ki = 0;
   Motor rmotor(BIN1, BIN2, PWMB, 1);
 
   // Robot movement
-  Navigator trackbot(lmotor, rmotor);
+  Navigator trackbot(lcontroller, rcontroller);
 
   // Encoder A (LEFT)
   Encoder lencoder(encoderAChannel2, PULSERPERROTATION, lmotor);
@@ -75,14 +75,14 @@ void setup() {
 
 void loop() {
 
-  // float lTarget = 400;
-  float rTarget = 400;
+  float rtarget = 300;
+  //float rtarget = 400*cos(2*M_PI*0.5*micros()/10e6);
 
   if ((micros() - lencoder.previousMicros) > calculate_interval) {
     currentMicrosA = micros();
     detachInterrupt(encoderAChannel2);
     detachInterrupt(encoderBChannel1);
-    lencoder.calculateRPM();
+    lencoder.calculateRADS();
     attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
     attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
   }
@@ -91,21 +91,21 @@ void loop() {
     currentMicrosB = micros();
     detachInterrupt(encoderBChannel1);
     detachInterrupt(encoderAChannel2);
-    rencoder.calculateRPM();
+    rencoder.calculateRADS();
     attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
     attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
   }
 
-  int currentlRPM = lencoder.getRPM();
-  int currentrRPM = rencoder.getRPM();
+  float currentlRADS = lencoder.getRADS();
+  float currentrRADS = rencoder.getRADS();
 
-  // int lpwm = lcontroller.controlMotor(lTarget, currentlRPM);
-  // int rpwm = rcontroller.controlMotor(rTarget, currentrRPM);
+  geometry_msgs::Twist dvel;
+  dvel.linear.x = 5;
 
-  // Serial.printf("%d; %d; %3.3f; %d; %d\n", 1500, 30, rTarget, currentrRPM, rpwm);
-  Serial.printf("LRPM: %d; RRPM: %d\n", currentlRPM, currentrRPM);
+  motorPWM myvel = trackbot.move(dvel, currentlRADS, currentrRADS);
 
-  trackbot.moveAhead(400);
+  rmotor.setSpeed(myvel.rpwm);
+  Serial.printf("%3.3f;%3.3f\n", rtarget, currentrRADS);
   
 }
 

@@ -1,7 +1,14 @@
 #ifndef NAVIGATOR_H
 #define NAVIGATOR_H
 
-#include "Motor.h"
+#include "Controller.h"
+#include <ros.h>
+#include <geometry_msgs/Twist.h>
+
+struct motorPWM {
+    int lpwm;
+    int rpwm;
+};
 
 /** @brief Controls the robot movement.
 * @param lMotor Left motor object from Motor class.
@@ -11,19 +18,13 @@ class Navigator {
     
     private:
 
-        Motor& lMotor;
-        Motor& rMotor;
-
-        void changeSpeed(const int lPWM, const int rPWM);
+        Controller& lController;
+        Controller& rController;
 
     public:
 
-        Navigator(Motor& LMOTOR, Motor& RMOTOR);
-        void moveAhead(const int16_t PWM);
-        void moveBackwards(const int16_t PWM);
-        void halt();
-        void turnLeft(const int16_t lPWM, const int16_t rPWM);
-        void turnRight(const int16_t lPWM, const int16_t rPWM);
+        Navigator(Controller& LCONTROLLER, Controller& RCONTROLLER);
+        motorPWM move(geometry_msgs::Twist COMMAND, float LCURRENTMEASUREMENT, float RCURRENTMEASUREMENT);
 };
 
 #endif // NAVIGATOR_H

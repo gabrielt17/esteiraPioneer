@@ -60,7 +60,7 @@ int Controller::convertToPWM(float Value) {
  * Combines the previous methods into one. Accumulates the control singal.
  *  
  */ 
-int Controller::controlMotor(int Target, int Measurement) {
+int Controller::controlMotor(int Target, float Measurement) {
 
     Controller::accumulated += Controller::convertToPWM(Controller::getControlSignal(Target, Measurement));
     return Controller::accumulated;
