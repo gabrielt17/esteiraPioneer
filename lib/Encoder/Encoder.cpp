@@ -4,15 +4,15 @@
 /** @brief Construtor que leva em consideração a existência de um pino
  *de alimentação.
  */
-Encoder::Encoder(const uint8_t &ENCODERPIN, const uint8_t &PULSESPEROTATION, Motor &MOTOR, const uint8_t &POWERPIN)
-    : encoderPin(ENCODERPIN), pulsesPerRotation(PULSESPEROTATION), powerPin(POWERPIN), pulses(0), rads(0), previousMicros(0), motor(MOTOR)
+Encoder::Encoder(const uint8_t &ENCODERPIN, const uint8_t &PULSESPEROTATION, const uint8_t &POWERPIN)
+    : encoderPin(ENCODERPIN), pulsesPerRotation(PULSESPEROTATION), powerPin(POWERPIN), pulses(0), rpm(0), previousMicros(0)
 {
     Encoder::setupArduino(true, Encoder::powerPin);
 }
 
 // Construtor sem pino de alimentação
-Encoder::Encoder(const uint8_t &ENCODERPIN, const uint8_t &PULSESPEROTATION, Motor &MOTOR)
-    : encoderPin(ENCODERPIN), powerPin(0), pulses(0), rads(0), previousMicros(0), pulsesPerRotation(PULSESPEROTATION), motor(MOTOR)
+Encoder::Encoder(const uint8_t &ENCODERPIN, const uint8_t &PULSESPEROTATION)
+    : encoderPin(ENCODERPIN), powerPin(0), pulses(0), rpm(0), previousMicros(0), pulsesPerRotation(PULSESPEROTATION)
 {
     Encoder::setupArduino(false, 0);
 }
@@ -29,7 +29,7 @@ void Encoder::setupArduino(bool POWER, uint8_t POWERPIN)
 }
 
 // Calcula o RPM
-void Encoder::calculateRADS()
+void Encoder::calculateRPM()
 {
 
     unsigned long currentMicros = micros();
@@ -37,27 +37,25 @@ void Encoder::calculateRADS()
 
     if (deltaMicros > 0)
     {
-        Encoder::rads = M_TWOPI * (static_cast<double>(Encoder::pulses) / Encoder::pulsesPerRotation) / (static_cast<double>(deltaMicros) / 1e6);
+        Encoder::rpm = 60 * (static_cast<double>(Encoder::pulses) / Encoder::pulsesPerRotation) / (static_cast<double>(deltaMicros) / 1e6);
     }
     else
     {
-        Encoder::rads = 0;
+        Encoder::rpm = 0;
     }
     Encoder::resetCounter();
     Encoder::previousMicros = currentMicros;
 }
 
 // Retorna o RPM
-float Encoder::getRADS()
+float Encoder::getRPM(bool ISCLOCKWISE)
 {
 
-    if (motor.isClockwise == true)
+    if (ISCLOCKWISE)
     {
-        return -Encoder::rads;
-    }
-    else
-    {
-        return Encoder::rads;
+        return -Encoder::rpm;
+    } else {
+        return Encoder::rpm;
     }
 }
 

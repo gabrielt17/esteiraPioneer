@@ -12,14 +12,14 @@ class Controller {
         float pwm = 0; // Stores the lastest calculated PWM conversion
         unsigned long previousMicros = 0 ;
         float previousError = 0;
-        int accumulated = 0;
+        float accumulated = 0;
         
     public:
 
-        Controller(float Kp, float Kd, float Ki);
-        float getControlSignal(int Target, float Measurement);
-        int convertToPWM(float Value);
-        int controlMotor(int Target, float Measurement);
+        Controller(float KP, float KD, float KI);
+        float getControlSignal(float TARGET, float RADSMEASUREMENT);
+        float convertToPWM(float VALUE);
+        float controlMotor(int TARGET, float RPMMEASUREMENT);
 };
 
 
