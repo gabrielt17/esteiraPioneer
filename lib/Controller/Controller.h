@@ -19,7 +19,7 @@ class Controller {
         Controller(float KP, float KD, float KI);
         float getControlSignal(float TARGET, float RADSMEASUREMENT);
         float convertToPWM(float VALUE);
-        float controlMotor(int TARGET, float RPMMEASUREMENT);
+        float controlMotor(float TARGET, float RPMMEASUREMENT);
 };
 
 

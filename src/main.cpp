@@ -25,8 +25,8 @@ const byte resolution = 10;
 const int PULSERPERROTATION = 38;
 
 // PID Controller constants
-const double kp = 0.792/55;
-const double kd = 0.792/4800;
+const double kp = 0.792/38;
+const double kd = 0;
 const double ki = 0;
 
 // Global variables
@@ -47,14 +47,14 @@ const double ki = 0;
   // Motor B (RIGHT)
   Motor rmotor(BIN1, BIN2, PWMB, 1);
 
-  // Robot movement
-  Navigator trackbot(lcontroller, rcontroller);
-
   // Encoder A (LEFT)
   Encoder lencoder(encoderAChannel2, PULSERPERROTATION);
   
   // Encoder B (RIGHT)
   Encoder rencoder(encoderBChannel1, PULSERPERROTATION);
+
+  // Robot movement
+  Navigator trackbot(lcontroller, rcontroller, lmotor, rmotor, lencoder, rencoder, 0.025, 0.5);
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -76,9 +76,11 @@ void setup() {
 
 void loop() {
 
-  
-  float rtarget = 900*cos(2*M_PI*4.5*micros()/10e6);
-  // float rtarget = -1000;
+  // float ltarget = 400*cos(TWO_PI*micros()*4.5/1e6);
+  // float rtarget = -400*cos(TWO_PI*micros()*4.5/1e6);
+
+  // float ltarget = 900;
+  // float rtarget = -900;
 
   if ((micros() - lencoder.previousMicros) > calculate_interval) {
     currentMicrosA = micros();
@@ -98,16 +100,23 @@ void loop() {
     attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
   }
 
-  float currentlRPM = lencoder.getRPM(lmotor.isClockwise);
-  float currentrRPM = rencoder.getRPM(rmotor.isClockwise);
+  geometry_msgs::Twist msg;
+  // msg.linear.x = 0.25*cos(M_TWOPI*micros()*4.5/10e6);
+  msg.angular.z = 30*M_PI;
+  trackbot.move(msg);
+  
+//   float currentlRPM = lencoder.getRPM(lmotor.isClockwise);
+//   float currentrRPM = rencoder.getRPM(rmotor.isClockwise);
 
-  float rpwm = rcontroller.controlMotor(rtarget, currentrRPM);
+//   float rpwm = rcontroller.controlMotor(rtarget, currentrRPM);
+//   float lpwm = lcontroller.controlMotor(ltarget, currentlRPM);
 
   
-  rmotor.setSpeed(rpwm);
+//   rmotor.setSpeed(rpwm);
+//   lmotor.setSpeed(lpwm);
   
   
-  Serial.printf(">rtarget:%3.3f\n>currentrRPM:%3.3f\n>const1:%d\n>const2:%d\n", rtarget, currentrRPM, 30, 1300);
+//   Serial.printf(">rtarget:%3.3f\n>currentrRPM:%3.3f\n>ltarget:%3.3f\n>currentlRPM:%3.3f\n", rtarget, currentrRPM, ltarget, currentlRPM);
 }
 
 
