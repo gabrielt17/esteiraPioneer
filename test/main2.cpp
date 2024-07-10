@@ -10,15 +10,9 @@ DISCLAIMER: Tests made using 10-bit resolution PWM
 
 #include <Arduino.h>
 #include <Motor.h>
-#include <Navigator.h>
 #include <Controller.h>
 #include <Encoder.h>
 #include "Pins.h"
-
-// PWM related values
-const int freq = 5000;
-const byte controllerA_channel = 0;
-const byte resolution = 10;
 
 // Encoder pulse count by rotation
 const int PULSERPERROTATION = 38;
@@ -46,9 +40,6 @@ const double ki = 0;
   // Motor B (RIGHT)
   Motor rmotor(BIN1, BIN2, PWMB, 1);
 
-  // Robot movement
-  Navigator trackbot(lcontroller, rcontroller);
-
   // Encoder A (LEFT)
   Encoder lencoder(encoderAChannel2, PULSERPERROTATION);
   
@@ -75,37 +66,7 @@ void setup() {
 
 void loop() {
 
-    // float rtarget = 300;
-    //float rtarget = 400*cos(2*M_PI*0.5*micros()/10e6);
-    rmotor.setSpeed(9);
-    wait(1000);
-    for (int i = 9; i <= 1023; i++) {
-    
-    rmotor.setSpeed(i);
-    wait(300);
-    if ((micros() - lencoder.previousMicros) > calculate_interval) {
-        currentMicrosA = micros();
-        detachInterrupt(encoderAChannel2);
-        detachInterrupt(encoderBChannel1);
-        lencoder.calculateRPM();
-        attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
-        attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
-    }
-
-    if ((micros() - rencoder.previousMicros) > calculate_interval) {
-        currentMicrosB = micros();
-        detachInterrupt(encoderBChannel1);
-        detachInterrupt(encoderAChannel2);
-        rencoder.calculateRPM();
-        attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
-        attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
-    }
-
-    float currentlRPM = lencoder.getRPM(lmotor.isClockwise);
-    float currentrRPM = rencoder.getRPM(rmotor.isClockwise);
-
-    Serial.printf("%d;%3.3f\n", i, currentrRPM);
-    }
+  lmotor.setSpeed(60);
   
 }
 

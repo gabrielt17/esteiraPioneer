@@ -12,21 +12,18 @@ DISCLAIMER: Tests made using 10-bit resolution PWM
 #include <Controller.h>
 #include <Encoder.h>
 #include <ros.h>
+#include <geometry_msgs/Pose2D.h>
 #include "Pins.h"
 #include <WiFi.h>
-
-// PWM related values
-const int freq = 5000;
-const byte controllerA_channel = 0;
-const byte resolution = 10;
+#include <SimpleKalmanFilter.h>
 
 // Encoder pulse count by rotation
 const int PULSERPERROTATION = 38;
 
 // PID Controller constants
-const double kp = 0.792/50;
-const double kd = 0;
-const double ki = 0.792/150;
+const double kp = 0.792/30;
+const double kd = 0.792/2000;
+const double ki = 0;
 
 // Global variables
 
@@ -35,9 +32,9 @@ const double ki = 0.792/150;
   const char* pw = "BDPsystem10";
   
   // Time
-  unsigned long previousMicros = 0;
-  const int calculate_interval = 150000;
-
+  const int calculateRPM_interval = 50000;
+  const int callback_interval = 1000000;
+  unsigned long currentCb_timer = 0;
   unsigned long currentMicrosA, currentMicrosB = 0;
 
   // Controller
@@ -58,39 +55,69 @@ const double ki = 0.792/150;
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
+// Kalman filter
+SimpleKalmanFilter lkf = SimpleKalmanFilter(5, 5, 0.01);
+SimpleKalmanFilter rkf = SimpleKalmanFilter(5, 5, 0.01);
+
 // Function prototypes (declarations)
 void wait(int Time);
 void IRAM_ATTR lencoderCounter();
 void IRAM_ATTR rencoderCounter();
+void messageCb(const geometry_msgs::Twist &MSG);
 
+// ROS variables
+IPAddress server(192,168,0,118); // MASTER IP
+const uint16_t serverPort = 11411; // TCP CONNECTION
+ros::NodeHandle nh;
 geometry_msgs::Twist msg;
+geometry_msgs::Pose2D encodermsg;
+ros::Publisher pub_encoder("encoder_fb", &encodermsg);
+ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", &messageCb );
+
 motorRPM rpm;
 
 void setup() {
 
   // Initalizing serial
   Serial.begin(115200);
-//   Serial.printf(">rtarget:%3.3f\n>currentrRPM:%3.3f\n>ltarget:%3.3f\n>currentlRPM:%3.3f\n", rtarget, currentrRPM, ltarget, currentlRPM);
+
+  // Wifi setup
+  WiFi.begin(ssid, pw);
+  while (WiFi.status() != WL_CONNECTED){
+    wait(500);
+    Serial.print(".");
+    wait(800);
+  }
+  Serial.printf("\nConectado ao WiFi!\n");
 
   // Attach encoder ISR's
   attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
   attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
 
-  msg.linear.x = 2;
-  msg.angular.z = TWO_PI;
-  rpm = convertMessage(msg);
+  // ROS setup
+  nh.getHardware()->setConnection(server, serverPort);
+  nh.initNode();
+  nh.subscribe(cmd_vel);
+  nh.advertise(pub_encoder);
+  while (!nh.connected()) {
+    nh.spinOnce();
+    Serial.print(".");
+    wait(800);
+  }
+  Serial.println();
+
 }
 
 void loop() {
 
-  float ltarget = 400*cos(TWO_PI*micros()*0.5/1e6);
-  float rtarget = -400*cos(TWO_PI*micros()*0.5/1e6);
+  float tmpproc = millis();
 
-  // float ltarget = 900;
-  // float rtarget = -900;
+  if ((micros() - currentCb_timer) >= callback_interval) {
+    rpm = {0,0};
+  }
 
-  if ((micros() - lencoder.previousMicros) > calculate_interval) {
-    currentMicrosA = micros();
+  if ((micros() - lencoder.previousMicros) > calculateRPM_interval) {
+    Serial.println(micros() - lencoder.previousMicros);
     detachInterrupt(encoderAChannel2);
     detachInterrupt(encoderBChannel1);
     lencoder.calculateRPM();
@@ -98,8 +125,7 @@ void loop() {
     attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
   }
 
-  if ((micros() - rencoder.previousMicros) > calculate_interval) {
-    currentMicrosB = micros();
+  if ((micros() - rencoder.previousMicros) > calculateRPM_interval) {
     detachInterrupt(encoderBChannel1);
     detachInterrupt(encoderAChannel2);
     rencoder.calculateRPM();
@@ -107,22 +133,29 @@ void loop() {
     attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
   }
   
-  float currentlRPM = lencoder.getRPM(lmotor.isClockwise);
-  float currentrRPM = rencoder.getRPM(rmotor.isClockwise);
-
-  float rpwm = rcontroller.controlMotor(rtarget, currentrRPM);
-  float lpwm = lcontroller.controlMotor(ltarget, currentlRPM);
-
-  // Serial.printf("rrpm:%3.3f, lrpm:%3.3f\n",rpm.rrpm, rpm.lrpm);
-
-  lmotor.setSpeed(lpwm);
-  rmotor.setSpeed(rpwm);
-  
-  
-  
-  Serial.printf(">rtarget:%3.3f\n>currentrRPM:%3.3f\n>ltarget:%3.3f\n>currentlRPM:%3.3f\n", rtarget, currentrRPM, ltarget, currentlRPM);
+  if (1) {
+    float currentlRPM = lkf.updateEstimate(lencoder.getRPM(lmotor.isClockwise));
+    //Serial.printf(" RPM MEDIDO: %3.3f ", lencoder.getRPM(lmotor.isClockwise));
+    encodermsg.x = currentlRPM;
+    encodermsg.y = lencoder.getRPM(lmotor.isClockwise);
+    encodermsg.theta = lencoder.pulses;
+    float lpwm = lcontroller.controlMotor(rpm.lrpm, currentlRPM);
+    lmotor.setSpeed(lpwm);
+    pub_encoder.publish(&encodermsg);
+    Serial.printf(">encoder:%3.3f\n>alvo:%3.3f\n", currentlRPM, rpm.lrpm );
+  }
+  if (1) {
+    float currentrRPM = rkf.updateEstimate(rencoder.getRPM(rmotor.isClockwise));
+    encodermsg.y = currentrRPM;
+    float rpwm = rcontroller.controlMotor(rpm.rrpm, currentrRPM);
+    rmotor.setSpeed(rpwm);
+    pub_encoder.publish(&encodermsg);
+  }
+ 
+  //Serial.printf("LRPM:%3.3f, RRPM:%3.3f, PWM:%3.3f\n", rpm.lrpm, rpm.rrpm, measpwm);
+  nh.spinOnce();
+  wait(10);
 }
-
 
 /* Function definitions*/
 
@@ -136,6 +169,11 @@ void IRAM_ATTR rencoderCounter() {
   portENTER_CRITICAL_ISR(&mux);
   rencoder.pulses++;
   portEXIT_CRITICAL_ISR(&mux);
+}
+
+void messageCb(const geometry_msgs::Twist &MSG) {
+  rpm = convertMessage(MSG);
+  currentCb_timer = micros();
 }
 
 // Delay function that doesn't engage sleep mode

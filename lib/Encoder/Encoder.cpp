@@ -35,16 +35,11 @@ void Encoder::calculateRPM()
     unsigned long currentMicros = micros();
     unsigned long deltaMicros = currentMicros - Encoder::previousMicros;
 
-    if (deltaMicros > 0)
-    {
-        Encoder::rpm = 60 * (static_cast<double>(Encoder::pulses) / Encoder::pulsesPerRotation) / (static_cast<double>(deltaMicros) / 1e6);
-    }
-    else
-    {
-        Encoder::rpm = 0;
-    }
-    Encoder::resetCounter();
+
+    Encoder::rpm = 60 * (static_cast<double>(this->pulses) / Encoder::pulsesPerRotation) / (static_cast<double>(deltaMicros) / 1e6);
+    this->resetCounter();
     Encoder::previousMicros = currentMicros;
+    Encoder::isCalculated = true;
 }
 
 // Retorna o RPM
@@ -57,9 +52,10 @@ float Encoder::getRPM(bool ISCLOCKWISE)
     } else {
         return Encoder::rpm;
     }
+    Encoder::isCalculated = false;
 }
 
 void Encoder::resetCounter()
 {
-    Encoder::pulses = 0;
+    this->pulses = 0;
 }

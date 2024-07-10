@@ -16,6 +16,9 @@ float Controller::getControlSignal(float TARGET, float RPMMEASUREMENT) {
     float deltaMicros = static_cast<float>((currentMicros-previousMicros))/(1e6);
     float error = TARGET - RPMMEASUREMENT;
     float deltaError = error-previousError;
+    if (fabs(error) < 5) {
+        error = 0;
+    } 
 
     // Time in which the previous error was registered
     previousMicros = currentMicros;
@@ -27,7 +30,7 @@ float Controller::getControlSignal(float TARGET, float RPMMEASUREMENT) {
     float d = (deltaError/deltaMicros)*Controller::kd;
 
     // Integrative instance
-    Controller::i += error*Controller::ki*deltaMicros;
+    this->i += error*Controller::ki*deltaMicros;
 
     // Control signal equation
     float u = r + d + i;

@@ -52,7 +52,7 @@ void Motor::setupArduino() {
 /// @brief Sets the ledc library up
 void Motor::setupLedc() {
 
-    ledcSetup(Motor::channel, 5000, 10);
+    ledcSetup(Motor::channel, 10000, 10);
     ledcAttachPin(Motor::pwmpin, Motor::channel);
 }
 
