@@ -12,22 +12,22 @@
 class Encoder {
     private:
 
-        
         const uint8_t powerPin;
         uint pulsesPerRotation;
         float rpm;
         
-
-
+        const uint8_t encoderPin;
         void setupArduino(bool POWER, uint8_t POWERPIN);       
 
     public:
+
         unsigned long previousMicros = 0;
-        const uint8_t encoderPin;
+        bool isCalculated;
+        
         Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, const uint8_t& POWERPIN);
         Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION);
         void calculateRPM();
-        float getRPM();
+        float getRPM(bool ISCLOCKWISE);
         void resetCounter();
         volatile uint pulses;
 };

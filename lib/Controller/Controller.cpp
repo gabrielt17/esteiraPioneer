@@ -2,23 +2,23 @@
 #include "Arduino.h"
 
 // Class constructor
-Controller::Controller(float Kp, float Kd, float Ki) {
-    
-    Controller::kp = Kp;
-    Controller::kd = Kd;
-    Controller::ki = Ki;
+Controller::Controller(float KP, float KD, float KI) 
+: kp(KP), kd(KD), ki(KI) {
 }
 
 // Calculates the control signal to the given parameters
-float Controller::getControlSignal(int Target, float RPMMeasurement) {
+float Controller::getControlSignal(float TARGET, float RPMMEASUREMENT) {
 
     // Time in which the error was registered
     unsigned long currentMicros = micros();
 
     // Error and time intervals calculations
     float deltaMicros = static_cast<float>((currentMicros-previousMicros))/(1e6);
-    float error = static_cast<float>(Target - RPMMeasurement);
-    float deltaError = static_cast<float>(error-previousError);
+    float error = TARGET - RPMMEASUREMENT;
+    float deltaError = error-previousError;
+    if (fabs(error) < 5) {
+        error = 0;
+    } 
 
     // Time in which the previous error was registered
     previousMicros = currentMicros;
@@ -30,7 +30,7 @@ float Controller::getControlSignal(int Target, float RPMMeasurement) {
     float d = (deltaError/deltaMicros)*Controller::kd;
 
     // Integrative instance
-    Controller::i += error*Controller::ki*deltaMicros;
+    this->i += error*Controller::ki*deltaMicros;
 
     // Control signal equation
     float u = r + d + i;
@@ -41,10 +41,9 @@ float Controller::getControlSignal(int Target, float RPMMeasurement) {
 }
 
 // Converts the given control signal into a 10-bit PWM value
-int Controller::convertToPWM(float Value) {
+float Controller::convertToPWM(float VALUE) {
     
-    int pwm = Value;
-    
+    float pwm = VALUE;
     if (pwm > 1023) {
         pwm = 1023;
     }
@@ -53,15 +52,15 @@ int Controller::convertToPWM(float Value) {
         pwm = -1023;
     }
 
-    return static_cast<int>(pwm);
+    return pwm;
 }
 
 /** @brief
  * Combines the previous methods into one. Accumulates the control singal.
  *  
  */ 
-int Controller::controlMotor(int Target, int Measurement) {
+float Controller::controlMotor(float TARGET, float RPMMEASUREMENT) {
 
-    Controller::accumulated += Controller::convertToPWM(Controller::getControlSignal(Target, Measurement));
+    Controller::accumulated += Controller::convertToPWM(Controller::getControlSignal(TARGET, RPMMEASUREMENT));
     return Controller::accumulated;
 }

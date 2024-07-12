@@ -3,8 +3,8 @@
 /** @brief Class contructor.
 * This version of the constructor requires the user to specify the operation channel
 */
-Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM, const uint8_t CHANNEL)
-: in1(IN1), in2(IN2), pwmpin(PWM), channel(CHANNEL) {
+Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWMPIN, const uint8_t CHANNEL)
+: in1(IN1), in2(IN2), pwmpin(PWMPIN), channel(CHANNEL) {
 	
     Motor::setupArduino();
     Motor::setupLedc();
@@ -13,8 +13,8 @@ Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM, const uin
 /** @brief Class contructor.
 * This version of the constructor uses the channel 0 as default
 */
-Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM) 
-: in1(IN1), in2(IN2), pwmpin(PWM), channel(0) {
+Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWMPIN) 
+: in1(IN1), in2(IN2), pwmpin(PWMPIN), channel(0) {
 
 	Motor::setupArduino();
     Motor::setupLedc();
@@ -22,14 +22,14 @@ Motor::Motor(const uint8_t IN1, const uint8_t IN2, const uint16_t PWM)
 
 /// @brief Sets the motor rotation to clockwise
 void Motor::setClockwise() {
-
+    Motor::isClockwise = true;
     digitalWrite(Motor::in1, HIGH);
     digitalWrite(Motor::in2, LOW);
 }
 
 /// @brief Sets the motor rotation to anti-clockwise
 void Motor::setAntiClockwise() {
-
+    Motor::isClockwise = false;
     digitalWrite(Motor::in1, LOW);
     digitalWrite(Motor::in2, HIGH);
 }
@@ -52,11 +52,16 @@ void Motor::setupArduino() {
 /// @brief Sets the ledc library up
 void Motor::setupLedc() {
 
-    ledcSetup(Motor::channel, 5000, 10);
+    ledcSetup(Motor::channel, 10000, 10);
     ledcAttachPin(Motor::pwmpin, Motor::channel);
 }
 
-void Motor::setSpeed(const uint16_t PWM) {
-
-    ledcWrite(Motor::channel, PWM);
+void Motor::setSpeed(const int16_t PWM) {
+    if (PWM < 0) {
+        Motor::setClockwise();
+        ledcWrite(Motor::channel, -PWM);
+    } else {
+        Motor::setAntiClockwise();
+        ledcWrite(Motor::channel, PWM);
+    }
 }
