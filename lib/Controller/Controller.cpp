@@ -1,11 +1,20 @@
 #include "Controller.h"
 
-// Class constructor
+/** @brief
+ * Class constructor
+ * @param KP Proporcional gain constant. Should be the biggest value of
+ *all three.
+ * @param KD Derivative gain constant. Should be smaller compared to KP.
+ * @param KI Integrative gain constant. Should even smaller than KP and KD.
+ */
 Controller::Controller(float KP, float KD, float KI) 
 : kp(KP), kd(KD), ki(KI) {
 }
 
-// Calculates the control signal to the given parameters
+/** @brief
+ * Calculates the control signal to the given parameters
+ * @param 
+ */ 
 float Controller::getControlSignal(float TARGET, float RPMMEASUREMENT) {
 
     // Time in which the error was registered
@@ -19,22 +28,23 @@ float Controller::getControlSignal(float TARGET, float RPMMEASUREMENT) {
         return 0;
     } 
 
-    // Time in which the previous error was registered
+    // Time the last error measurement was taken
     previousMicros = currentMicros;
 
-    // Proporcional instance
-    float r = error*Controller::kp;
+    // Proporcional formula
+    float r = error*this->kp;
 
-    // Derivative instance
-    float d = (deltaError/deltaMicros)*Controller::kd;
+    // Derivative formula
+    float d = (deltaError/deltaMicros)*this->kd;
 
-    // Integrative instance
-    this->i += error*Controller::ki*deltaMicros;
+    // Integrative formula
+    this->i += error*this->ki*deltaMicros;
 
     // Control signal equation
     float u = r + d + i;
 
-    Controller::previousError = error;
+    // Registers tjh
+    this->previousError = error;
     
     return u;
 }
@@ -60,6 +70,6 @@ float Controller::convertToPWM(float VALUE) {
  */ 
 float Controller::controlMotor(float TARGET, float RPMMEASUREMENT) {
 
-    Controller::accumulated += Controller::convertToPWM(Controller::getControlSignal(TARGET, RPMMEASUREMENT));
-    return Controller::accumulated;
+    this->accumulated += this->convertToPWM(this->getControlSignal(TARGET, RPMMEASUREMENT));
+    return this->accumulated;
 }

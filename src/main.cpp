@@ -24,10 +24,19 @@
 #include "Pins.h"
 
 #include <Arduino.h>
-#include <Motor.h>
+#include <Motor.h>// Port defaults to 8266
+  // ArduinoOTA.setPort(8266);
+
+  // Hostname defaults to esp8266-[ChipID]
+  // ArduinoOTA.setHostname("myesp8266");
+
+  // No authentication by default
+  // ArduinoOTA.setPassword((const char *)"123");
+
 #include <Converter.h>
 #include <Controller.h>
 #include <Encoder.h>
+#include <ArduinoOTA.h>
 
 #include <ros.h>
 #include <geometry_msgs/Pose2D.h>
@@ -83,6 +92,8 @@ SimpleKalmanFilter rkf = SimpleKalmanFilter(5, 5, 0.01);
 // Critical session
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
+// OTA instance
+
 // RPM target values
 MotorVel vel;
 
@@ -116,12 +127,15 @@ void setup() {
 
   // Wifi setup
   WiFi.begin(SSID, PASSWD);
+  WiFi.mode(WIFI_STA);
   while (WiFi.status() != WL_CONNECTED){
-    wait(500);
     Serial.print(".");
     wait(800);
   }
-  Serial.printf("\nConectado ao WiFi!\n");
+  Serial.printf("\nConectado ao WI-FI!\n");
+
+  // OTA setup
+  otaSetup();
 
   // Attach encoder ISR's
   attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
@@ -180,6 +194,7 @@ void loop() {
     encoderFb.publish(&encoderReadings);
   }
   Serial.printf("LRPM:%3.3f RRPM:%3.3f\n", vel.lrpm, vel.rrpm);
+  ArduinoOTA.handle();
   nh.spinOnce();
   wait(10);
 }
@@ -205,9 +220,44 @@ void velCb(const geometry_msgs::Twist &MSG) {
   cbTimeout = micros();
 }
 
+void otaSetup() {
+
+  // Port defaults to 8266
+  ArduinoOTA.setPort(8266);
+
+  // Hostname defaults to esp8266-[ChipID]
+  ArduinoOTA.setHostname("Tracker");
+
+  // No authentication by default
+  ArduinoOTA.setPassword((const char *)"temqueverissoai");
+
+  ArduinoOTA.onStart([]() {
+    Serial.println("Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+  Serial.println("Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
 // Delay function that doesn't engage sleep mode
 void wait(int time) {
   int lasttime = millis();
   while ((millis() - lasttime) <= time) {
+    ArduinoOTA.handle();
   }
 }
