@@ -1,5 +1,4 @@
 #include "Controller.h"
-#include "Arduino.h"
 
 // Class constructor
 Controller::Controller(float KP, float KD, float KI) 
@@ -16,8 +15,8 @@ float Controller::getControlSignal(float TARGET, float RPMMEASUREMENT) {
     float deltaMicros = static_cast<float>((currentMicros-previousMicros))/(1e6);
     float error = TARGET - RPMMEASUREMENT;
     float deltaError = error-previousError;
-    if (fabs(error) < 5) {
-        error = 0;
+    if (fabs(error) < 3) {
+        return 0;
     } 
 
     // Time in which the previous error was registered

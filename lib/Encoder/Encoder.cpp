@@ -1,5 +1,4 @@
 #include "Encoder.h"
-#include <Arduino.h>
 
 /** @brief Construtor que leva em consideração a existência de um pino
  *de alimentação.
