@@ -7,7 +7,7 @@
 * It uses a 10-bit resolution PWM signal to control the motors.
 *
 * You can especify the ESP32 PWM channel you desire or omit it when 
-*creating a object.
+*creating an instance.
 * @param IN1 INI1 H-bridge pin.
 * @param IN2 INI2 H-bridge pin.
 * @param PWM PWM Input H-bridge pin.
@@ -19,8 +19,8 @@ class Motor {
 
         uint8_t in1 = 0;
         uint8_t in2 = 0;
-        uint16_t pwmpin = 0;
-        uint8_t channel = 0;
+        const uint16_t pwmpin;
+        const uint8_t channel;
 
         void setupArduino();
         void setupLedc();

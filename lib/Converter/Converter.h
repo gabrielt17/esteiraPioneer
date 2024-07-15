@@ -5,11 +5,12 @@
 #include <geometry_msgs/Twist.h>
 #include <ros.h>
 
+/// @brief Stores two members: Left and right motor RPM values.
 struct MotorVel {
     float lrpm;
     float rrpm;
 };
-
+/// @brief Static class that converts ROS messages to RPM values.
 class Converter {
 
     private:

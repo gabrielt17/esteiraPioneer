@@ -24,14 +24,7 @@
 #include "Pins.h"
 
 #include <Arduino.h>
-#include <Motor.h>// Port defaults to 8266
-  // ArduinoOTA.setPort(8266);
-
-  // Hostname defaults to esp8266-[ChipID]
-  // ArduinoOTA.setHostname("myesp8266");
-
-  // No authentication by default
-  // ArduinoOTA.setPassword((const char *)"123");
+#include <Motor.h>
 
 #include <Converter.h>
 #include <Controller.h>
@@ -61,13 +54,12 @@ const char* SSID = "NERo-Arena";
 const char* PASSWD = "BDPsystem10";
 
 // Encoder pulse count by rotation
-const int PULSESPERROTATION = 38;
+const uint8_t PULSESPERROTATION = 38; // Encoder pulses in a single spin
 
 // Time
-const int CALCULATERPM_INTERVAL = 50000;
-const int CBTIMEOUT_INTERVAL = 1000000;
-unsigned long cbTimeout = 0;
-unsigned long currentMicrosA, currentMicrosB = 0;
+const uint CALCULATERPM_INTERVAL = 50000; // Time to calculate RPM
+const uint CBTIMEOUT_INTERVAL = 1000000; // Timeout time to callback
+unsigned long cbTimeout = 0; // Callback timemout timer
 
 // Controller
 Controller lcontroller(KP, KD, KI);
@@ -89,69 +81,50 @@ Encoder rencoder(encoderBChannel1, PULSESPERROTATION);
 SimpleKalmanFilter lkf = SimpleKalmanFilter(5, 5, 0.01);
 SimpleKalmanFilter rkf = SimpleKalmanFilter(5, 5, 0.01);
 
-// Critical session
+// Critical session initializer
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
-// OTA instance
-
 // RPM target values
-MotorVel vel;
+MotorVel vel; // Stores the callback in RPM values
 
-// Function prototypes (declarations)
+// ROS variables and functions
+IPAddress server(192,168,0,118); // MASTER IP
+const uint16_t serverPort = 11411; // TCP CONNECTION PORT
+ros::NodeHandle nh; // Node handle object
+geometry_msgs::Twist rosvel;
+std_msgs::Float32MultiArray encoderReadings;
+void ROS_Setup(std_msgs::Float32MultiArray &VAR);
+void velCb(const geometry_msgs::Twist &MSG);
+ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", &velCb);
+ros::Publisher encoderFb("encoder_fb", &encoderReadings);
+
+/**********************************************************************
+* Function prototypes (declarations)
+**********************************************************************/ 
 void wait(int Time);
 void IRAM_ATTR lencoderCounter();
 void IRAM_ATTR rencoderCounter();
-void velCb(const geometry_msgs::Twist &MSG);
 
-// ROS variables
-IPAddress server(192,168,0,118); // MASTER IP
-const uint16_t serverPort = 11411; // TCP CONNECTION
-ros::NodeHandle nh;
-geometry_msgs::Twist rosvel;
-std_msgs::Float32MultiArray encoderReadings;
-ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", &velCb);
-ros::Publisher encoderFb("encoder_fb", &encoderReadings);
+void OTA_Setup();
+void WIFI_Setup();
 
 void setup() {
 
   // Initalizing serial
   Serial.begin(115200);
 
-  encoderReadings.layout.dim = (std_msgs::MultiArrayDimension*)malloc(sizeof(std_msgs::MultiArrayDimension));
-  encoderReadings.layout.dim[0].label = "encoderFb";
-  encoderReadings.layout.dim[0].size = 2;
-  encoderReadings.layout.dim[0].stride = 2;
-  encoderReadings.layout.data_offset = 0;
-  encoderReadings.data_length = 2;
-  encoderReadings.data = (float*)malloc(sizeof(float) * 2);
-
-  // Wifi setup
-  WiFi.begin(SSID, PASSWD);
-  WiFi.mode(WIFI_STA);
-  while (WiFi.status() != WL_CONNECTED){
-    Serial.print(".");
-    wait(800);
-  }
-  Serial.printf("\nConectado ao WI-FI!\n");
+  // WiFi Setup
+  WIFI_Setup();
 
   // OTA setup
-  otaSetup();
+  OTA_Setup();
 
   // Attach encoder ISR's
   attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
   attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
-
+  
   // ROS setup
-  nh.getHardware()->setConnection(server, serverPort);
-  nh.initNode();
-  nh.subscribe(cmd_vel);
-  nh.advertise(encoderFb);
-  while (!nh.connected()) {
-    nh.spinOnce();
-    Serial.print(".");
-    wait(800);
-  }
-  Serial.println("Conectado ao master!");
+  ROS_Setup(encoderReadings);
 
 }
 
@@ -203,6 +176,7 @@ void loop() {
 * Function definitions
 **********************************************************************/
 
+// Encoder ISR functions
 void IRAM_ATTR lencoderCounter() {
   portENTER_CRITICAL_ISR(&mux);
   lencoder.pulses++;
@@ -215,12 +189,14 @@ void IRAM_ATTR rencoderCounter() {
   portEXIT_CRITICAL_ISR(&mux);
 }
 
+// ROS motor velocity callback function
 void velCb(const geometry_msgs::Twist &MSG) {
   vel = Converter::convertMessage(MSG);
   cbTimeout = micros();
 }
 
-void otaSetup() {
+// OTA setup function
+void OTA_Setup() {
 
   // Port defaults to 8266
   ArduinoOTA.setPort(8266);
@@ -252,6 +228,41 @@ void otaSetup() {
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+}
+
+// ROS setup function
+void ROS_Setup(std_msgs::Float32MultiArray &VAR) {
+
+  VAR.layout.dim = (std_msgs::MultiArrayDimension*)malloc(sizeof(std_msgs::MultiArrayDimension));
+  VAR.layout.dim[0].label = "encoderFb";
+  VAR.layout.dim[0].size = 2;
+  VAR.layout.dim[0].stride = 2;
+  VAR.layout.data_offset = 0;
+  VAR.data_length = 2;
+  VAR.data = (float*)malloc(sizeof(float) * 2);
+
+  nh.getHardware()->setConnection(server, serverPort);
+  nh.initNode();
+  nh.subscribe(cmd_vel);
+  nh.advertise(encoderFb);
+  while (!nh.connected()) {
+    ArduinoOTA.handle();
+    nh.spinOnce();
+    Serial.print(".");
+    wait(800);
+  }
+  Serial.println("Conectado ao master!");
+}
+
+void WIFI_Setup() {
+  WiFi.begin(SSID, PASSWD);
+  WiFi.mode(WIFI_STA);
+  while (WiFi.status() != WL_CONNECTED) {
+    ArduinoOTA.handle();
+    Serial.print(".");
+    wait(800);
+  }
+  Serial.printf("\nConectado ao Wi-fi!\n");
 }
 
 // Delay function that doesn't engage sleep mode
