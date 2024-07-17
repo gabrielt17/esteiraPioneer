@@ -1,25 +1,20 @@
 /*
- * Tractor
- * 
- * Copyright 2024 Gabriel Víctor <gabriel.muniz@ufv.br>
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA 02110-1301, USA.
- * 
- * 
- */
+*    Tracker, a Pioneer P3-DX inspired robot.
+*    Copyright (C) <2024>  <Gabriel Víctor and Hiago Batista>
+*
+*    This program is free software: you can redistribute it and/or modify
+*    it under the terms of the GNU General Public License as published by
+*    the Free Software Foundation, either version 3 of the License, or
+*    (at your option) any later version.
+*
+*    This program is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*    GNU General Public License for more details.
+*
+*    You should have received a copy of the GNU General Public License
+*    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 #include "Pins.h"
 
@@ -111,6 +106,16 @@ void setup() {
 
   // Initalizing serial
   Serial.begin(115200);
+  wait(2000);
+  Serial.printf("\n\n");
+  Serial.print("<Tracker>  Copyright (C) <2024>  <Gabriel Víctor");
+  Serial.println(" and Hiago Batista>");
+  Serial.print("This program comes with ABSOLUTELY NO WARRANTY;");
+  Serial.print(" for details access: https://www.gnu.org/licenses/gpl-3.0.html.");
+  Serial.print(" This is free software, and you are welcome to redistribute it");
+  Serial.println(" under certain conditions; access https://www.gnu.org/licenses/gpl-3.0.html for details.");
+  Serial.printf("\n");
+  wait(10000);
 
   // WiFi Setup
    // Network variables
@@ -157,11 +162,11 @@ void loop() {
   if (lencoder.isCalculated) {
     float currentlRPM = lkf.updateEstimate(lencoder.getRPM(lmotor.isClockwise));
     float lpwm = lcontroller.controlMotor(vel.lrpm, currentlRPM);
-    Serial.printf("%3.3f", vel.lrpm);
     lmotor.setSpeed(lpwm);
     encoderReadings.data[0] = currentlRPM;
     encoderFb.publish(&encoderReadings);
   }
+
   if (rencoder.isCalculated) {
     float currentrRPM = rkf.updateEstimate(rencoder.getRPM(rmotor.isClockwise));
     float rpwm = rcontroller.controlMotor(vel.rrpm, currentrRPM);
@@ -169,7 +174,7 @@ void loop() {
     encoderReadings.data[1] = currentrRPM;
     encoderFb.publish(&encoderReadings);
   }
-  Serial.printf("LRPM:%3.3f RRPM:%3.3f\n", vel.lrpm, vel.rrpm);
+
   ArduinoOTA.handle();
   nh.spinOnce();
   wait(10);
@@ -228,7 +233,7 @@ void OTA_Setup() {
     else if (error == OTA_END_ERROR) Serial.println("End Failed");
   });
   ArduinoOTA.begin();
-  Serial.println("Ready");
+  Serial.println("OTA Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 }
@@ -254,21 +259,22 @@ void ROS_Setup(std_msgs::Float32MultiArray &VAR) {
     Serial.print(".");
     wait(800);
   }
-  Serial.println("Conectado ao master!");
+  Serial.println("I come to serve, not to be served (Connected to master).");
 }
 
 void WIFI_Setup(const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET) {
    if (!WiFi.config(IPV4, GATEWAY, SUBNET)) {
-    Serial.println("Falha na configuração de IP estático");
+    Serial.println("The static IP setup failed.");
   }
   WiFi.begin(SSID, PASSWD);
   WiFi.mode(WIFI_STA);
+  Serial.println("Connecting to WIFI...");
   while (WiFi.status() != WL_CONNECTED) {
     ArduinoOTA.handle();
     Serial.print(".");
     wait(800);
   }
-  Serial.printf("\nConectado ao Wi-fi!\n");
+  Serial.printf("\nConnected to WIFI.\n");
 }
 
 // Delay function that doesn't engage sleep mode
