@@ -104,9 +104,8 @@ ros::Publisher encoderFb("encoder_fb", &encoderReadings);
 void wait(int Time);
 void IRAM_ATTR lencoderCounter();
 void IRAM_ATTR rencoderCounter();
-
 void OTA_Setup();
-void WIFI_Setup();
+void WIFI_Setup(const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET);
 
 void setup() {
 
@@ -114,7 +113,11 @@ void setup() {
   Serial.begin(115200);
 
   // WiFi Setup
-  WIFI_Setup();
+   // Network variables
+  IPAddress local_IP(192, 168, 0, 209);
+  IPAddress gateway(192, 168, 0, 1);
+  IPAddress subnet(255, 255, 255, 0);
+  WIFI_Setup(local_IP, gateway, subnet);
 
   // OTA setup
   OTA_Setup();
@@ -254,7 +257,10 @@ void ROS_Setup(std_msgs::Float32MultiArray &VAR) {
   Serial.println("Conectado ao master!");
 }
 
-void WIFI_Setup() {
+void WIFI_Setup(const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET) {
+   if (!WiFi.config(IPV4, GATEWAY, SUBNET)) {
+    Serial.println("Falha na configuração de IP estático");
+  }
   WiFi.begin(SSID, PASSWD);
   WiFi.mode(WIFI_STA);
   while (WiFi.status() != WL_CONNECTED) {
