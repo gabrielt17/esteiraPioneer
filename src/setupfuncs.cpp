@@ -7,6 +7,7 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Float32MultiArray.h>
 
+void wait(int Time);
 void OTA_Setup();
 void ROS_Setup(std_msgs::Float32MultiArray &VAR);
 void WIFI_Setup(const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET);
@@ -47,24 +48,14 @@ void OTA_Setup() {
 }
 
 // ROS setup function
-void ROS_Setup(IPAddress SERVER, const uint16_t SERVERPORT {
+void ROS_Setup(IPAddress SERVER, const uint16_t SERVERPORT) {
   
     // ROS variables and functions
     ros::NodeHandle nh; // Node handle object
     geometry_msgs::Twist rosvel;
     std_msgs::Float32MultiArray encoderReadings;
-    void ROS_Setup(std_msgs::Float32MultiArray &VAR);
-    void velCb(const geometry_msgs::Twist &MSG);
     ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", &velCb);
     ros::Publisher encoderFb("encoder_fb", &encoderReadings);
-
-    VAR.layout.dim = (std_msgs::MultiArrayDimension*)malloc(sizeof(std_msgs::MultiArrayDimension));
-    VAR.layout.dim[0].label = "encoderFb";
-    VAR.layout.dim[0].size = 2;
-    VAR.layout.dim[0].stride = 2;
-    VAR.layout.data_offset = 0;
-    VAR.data_length = 2;
-    VAR.data = (float*)malloc(sizeof(float) * 2);
 
     nh.getHardware()->setConnection(SERVER, SERVERPORT);
     nh.initNode();
@@ -79,7 +70,7 @@ void ROS_Setup(IPAddress SERVER, const uint16_t SERVERPORT {
     Serial.println("I come to serve, not to be served (Connected to master).");
 }
 
-void WIFI_Setup(const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET) {
+void WIFI_Setup(const char* SSID, const char* PASSWD, const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET) {
    if (!WiFi.config(IPV4, GATEWAY, SUBNET)) {
     Serial.println("The static IP setup failed.");
   }
@@ -94,4 +85,6 @@ void WIFI_Setup(const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress S
   Serial.printf("\nConnected to WIFI.\n");
 }
 
+// Delay function that doesn't engage sleep mode
+void wait(int time) {
 #endif // SETUPFUNCS
