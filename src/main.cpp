@@ -1,5 +1,5 @@
 /*
-*    Tracker, a Pioneer P3-DX inspired robot.
+*    ASTROS, a Pioneer P3-DX inspired robot.
 *    Copyright (C) <2024>  <Gabriel Víctor and Hiago Batista>
 *
 *    This program is free software: you can redistribute it and/or modify
