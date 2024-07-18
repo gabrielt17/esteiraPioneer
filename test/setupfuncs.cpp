@@ -82,10 +82,20 @@ void ROS_Setup(IPAddress SERVER, const uint16_t SERVERPORT) {
     while (!nh.connected()) {
     ArduinoOTA.handle();
     nh.spinOnce();
-    Serial.print(".");
     wait(800);
     }
-    Serial.println("I come to serve, not to be served (Connected to master).");
+Serial.println(" ___                              _                                    ");
+Serial.println("|_ _|   ___ ___  _ __ ___   ___  | |_ ___    ___  ___ _ ____   _____   ");
+Serial.println(" | |   / __/ _ \\| '_ ` _ \\ / _ \\ | __/ _ \\  / __|/ _ \\ '__\\ \\ / / _ \\  ");
+Serial.println(" | |  | (_| (_) | | | | | |  __/ | || (_) | \\__ \\  __/ |   \\ V /  __/_ ");
+Serial.println("|___|  \\___\\___/|_| |_| |_|\\___|  \\__\\___/  |___/\\___|_|    \\_/ \\___( )");
+Serial.println("                                                                    |/ ");
+Serial.println("             _     _          _                                        _ ");
+Serial.println(" _ __   ___ | |_  | |_ ___   | |__   ___   ___  ___ _ ____   _____  __| |");
+Serial.println("| '_ \\ / _ \\| __| | __/ _ \\  | '_ \\ / _ \\ / __|/ _ \\ '__\\ \\ / / _ \\/ _` |");
+Serial.println("| | | | (_) | |_  | || (_) | | |_) |  __/ \\__ \\  __/ |   \\ V /  __/ (_| |");
+Serial.println("|_| |_|\\___/ \\__|  \\__\\___/  |_.__/ \\___| |___/\\___|_|    \\_/ \\___|\\__,_|");
+Serial.println();
 }
 
 void WIFI_Setup(const char* SSID, const char* PASSWD, const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET) {

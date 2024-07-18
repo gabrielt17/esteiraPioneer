@@ -108,13 +108,12 @@ void setup() {
   Serial.begin(115200);
   wait(2000);
   Serial.printf("\n\n");
-  Serial.print("<Tracker>  Copyright (C) <2024>  <Gabriel Víctor");
+  Serial.print("<ASTROS>  Copyright (C) <2024>  <Gabriel Víctor");
   Serial.println(" and Hiago Batista>");
   Serial.print("This program comes with ABSOLUTELY NO WARRANTY;");
   Serial.print(" for details access: https://www.gnu.org/licenses/gpl-3.0.html.");
   Serial.print(" This is free software, and you are welcome to redistribute it");
   Serial.println(" under certain conditions; access https://www.gnu.org/licenses/gpl-3.0.html for details.");
-  Serial.printf("\n");
   wait(10000);
 
   // WiFi Setup
@@ -256,10 +255,21 @@ void ROS_Setup(std_msgs::Float32MultiArray &VAR) {
   while (!nh.connected()) {
     ArduinoOTA.handle();
     nh.spinOnce();
-    Serial.print(".");
     wait(800);
   }
-  Serial.println("I come to serve, not to be served (Connected to master).");
+  Serial.println("");
+  Serial.println(" ___                              _                                    ");
+  Serial.println("|_ _|   ___ ___  _ __ ___   ___  | |_ ___    ___  ___ _ ____   _____   ");
+  Serial.println(" | |   / __/ _ \\| '_ ` _ \\ / _ \\ | __/ _ \\  / __|/ _ \\ '__\\ \\ / / _ \\  ");
+  Serial.println(" | |  | (_| (_) | | | | | |  __/ | || (_) | \\__ \\  __/ |   \\ V /  __/_ ");
+  Serial.println("|___|  \\___\\___/|_| |_| |_|\\___|  \\__\\___/  |___/\\___|_|    \\_/ \\___( )");
+  Serial.println("                                                                    |/ ");
+  Serial.println("             _     _          _                                        _ ");
+  Serial.println(" _ __   ___ | |_  | |_ ___   | |__   ___   ___  ___ _ ____   _____  __| |");
+  Serial.println("| '_ \\ / _ \\| __| | __/ _ \\  | '_ \\ / _ \\ / __|/ _ \\ '__\\ \\ / / _ \\/ _` |");
+  Serial.println("| | | | (_) | |_  | || (_) | | |_) |  __/ \\__ \\  __/ |   \\ V /  __/ (_| | _");
+  Serial.println("|_| |_|\\___/ \\__|  \\__\\___/  |_.__/ \\___| |___/\\___|_|    \\_/ \\___|\\__,_|(_)");
+  Serial.println();
 }
 
 void WIFI_Setup(const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET) {
