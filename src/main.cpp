@@ -29,6 +29,7 @@
 #include <ros.h>
 #include <geometry_msgs/Pose2D.h>
 #include <std_msgs/Float32MultiArray.h>
+#include <lrpwm/Lrpwm.h>
 
 #include <WiFi.h>
 #include <SimpleKalmanFilter.h>
@@ -36,20 +37,24 @@
 /**********************************************************************
 * PID constants
 **********************************************************************/
-const double KP = 0.792/30;
-const double KD = 0.792/2000;
-const double KI = 0;
+const double lKP = 2.0401663533082357/30;
+const double lKD = 2.0401663533082357/2000;
+const double lKI = 0;
+
+const double rKP = 0.792/30;
+const double rKD = 0.792/2000;
+const double rKI = 0;
 
 /**********************************************************************
 * Global variables and defines
 **********************************************************************/
 
 // WiFi
-const char* SSID = "NERo-Arena";
-const char* PASSWD = "BDPsystem10";
+const char* SSID = "TRIADE_FIBRA_VICTOR";
+const char* PASSWD = "Victor_1992@";
 
 // Encoder pulse count by rotation
-const uint8_t PULSESPERROTATION = 38; // Encoder pulses in a single spin
+const uint8_t PULSESPERROTATION = 91; // Encoder pulses in a single spin
 
 // Time
 const uint CALCULATERPM_INTERVAL = 50000; // Time to calculate RPM
@@ -57,8 +62,8 @@ const uint CBTIMEOUT_INTERVAL = 1000000; // Timeout time to callback
 unsigned long cbTimeout = 0; // Callback timemout timer
 
 // Controller
-Controller lcontroller(KP, KD, KI);
-Controller rcontroller(KP, KD, KI);
+Controller lcontroller(lKP, lKD, lKI);
+Controller rcontroller(rKP, rKD, rKI);
 
 // Motor A (LEFT)
 Motor lmotor(AIN1, AIN2, PWMA);
@@ -82,14 +87,24 @@ portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 // RPM target values
 MotorVel vel; // Stores the callback in RPM values
 
+// PWM target values
+  // Both stores PWM from Controller or pwmCb
+float lpwm;
+float rpwm;
+
+// If the user sets a manual PWM value, then the controller main loop will be turned off
+bool overrideCb = false;
+
 // ROS variables and functions
-IPAddress server(192,168,0,118); // MASTER IP
+IPAddress server(192,168,10,45); // MASTER IP
 const uint16_t serverPort = 11411; // TCP CONNECTION PORT
 ros::NodeHandle nh; // Node handle object
 geometry_msgs::Twist rosvel;
 std_msgs::Float32MultiArray encoderReadings;
 void ROS_Setup(std_msgs::Float32MultiArray &VAR);
 void velCb(const geometry_msgs::Twist &MSG);
+void pwmCb(const lrpwm::Lrpwm &MSG);
+ros::Subscriber<lrpwm::Lrpwm> manual_pot("manual_pot", &pwmCb);
 ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", &velCb);
 ros::Publisher encoderFb("encoder_fb", &encoderReadings);
 
@@ -118,10 +133,10 @@ void setup() {
 
   // WiFi Setup
    // Network variables
-  IPAddress local_IP(192, 168, 0, 209);
+  IPAddress my_IP(192, 168, 10, 85);
   IPAddress gateway(192, 168, 0, 1);
   IPAddress subnet(255, 255, 255, 0);
-  WIFI_Setup(local_IP, gateway, subnet);
+  WIFI_Setup(my_IP, gateway, subnet);
 
   // OTA setup
   OTA_Setup();
@@ -140,38 +155,48 @@ void loop() {
   if ((micros() - cbTimeout) >= CBTIMEOUT_INTERVAL) {
     vel.lrpm = 0;
     vel.rrpm = 0;
+    lpwm = 0;
+    rpwm = 0;
+    overrideCb = false;
   }
+  Serial.print(overrideCb);
+  Serial.println();
+  if (!overrideCb) {
+    if ((micros() - lencoder.previousMicros) > CALCULATERPM_INTERVAL) {
+      detachInterrupt(encoderAChannel2);
+      detachInterrupt(encoderBChannel1);
+      lencoder.calculateRPM();
+      attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
+      attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
+    }
 
-  if ((micros() - lencoder.previousMicros) > CALCULATERPM_INTERVAL) {
-    detachInterrupt(encoderAChannel2);
-    detachInterrupt(encoderBChannel1);
-    lencoder.calculateRPM();
-    attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
-    attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
-  }
+    if ((micros() - rencoder.previousMicros) > CALCULATERPM_INTERVAL) {
+      detachInterrupt(encoderBChannel1);
+      detachInterrupt(encoderAChannel2);
+      rencoder.calculateRPM();
+      attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
+      attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
+    }
 
-  if ((micros() - rencoder.previousMicros) > CALCULATERPM_INTERVAL) {
-    detachInterrupt(encoderBChannel1);
-    detachInterrupt(encoderAChannel2);
-    rencoder.calculateRPM();
-    attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
-    attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
-  }
+    if (lencoder.isCalculated) {
+      float currentlRPM = lkf.updateEstimate(lencoder.getRPM(lmotor.isClockwise));
+      lpwm = lcontroller.controlMotor(vel.lrpm, currentlRPM);
+      lmotor.setSpeed(lpwm);
+      encoderReadings.data[0] = currentlRPM;
+      encoderFb.publish(&encoderReadings);
+    }
 
-  if (lencoder.isCalculated) {
-    float currentlRPM = lkf.updateEstimate(lencoder.getRPM(lmotor.isClockwise));
-    float lpwm = lcontroller.controlMotor(vel.lrpm, currentlRPM);
+    if (rencoder.isCalculated) {
+      float currentrRPM = rkf.updateEstimate(rencoder.getRPM(rmotor.isClockwise));
+      rpwm = rcontroller.controlMotor(vel.rrpm, currentrRPM);
+      rmotor.setSpeed(rpwm);
+      encoderReadings.data[1] = currentrRPM;
+      encoderFb.publish(&encoderReadings);
+    }
+  } else {
+    Serial.println("ESCREVENDO PWM");
     lmotor.setSpeed(lpwm);
-    encoderReadings.data[0] = currentlRPM;
-    encoderFb.publish(&encoderReadings);
-  }
-
-  if (rencoder.isCalculated) {
-    float currentrRPM = rkf.updateEstimate(rencoder.getRPM(rmotor.isClockwise));
-    float rpwm = rcontroller.controlMotor(vel.rrpm, currentrRPM);
     rmotor.setSpeed(rpwm);
-    encoderReadings.data[1] = currentrRPM;
-    encoderFb.publish(&encoderReadings);
   }
 
   ArduinoOTA.handle();
@@ -199,6 +224,31 @@ void IRAM_ATTR rencoderCounter() {
 // ROS motor velocity callback function
 void velCb(const geometry_msgs::Twist &MSG) {
   vel = Converter::convertMessage(MSG);
+  cbTimeout = micros();
+}
+
+void pwmCb(const lrpwm::Lrpwm &MSG) {
+  Serial.println("MSG recebida.\n");
+  lpwm = static_cast<float>(MSG.pwm_motor_esquerdo*-10.23);
+  rpwm = static_cast<float>(MSG.pwm_motor_direito*-10.23);
+  Serial.printf("lpwm: %3.3f, rpwm: %3.3f\n", lpwm, rpwm);
+  if (rpwm > 1023) {
+    rpwm = 1023;
+  }
+  else if (rpwm < -1023)
+  {
+    rpwm = -1023;
+  }
+
+  if (lpwm > 1023) {
+    lpwm = 1023;
+  }
+  else if (lpwm < -1023)
+  {
+    lpwm = -1023;
+  }
+
+  overrideCb = true;
   cbTimeout = micros();
 }
 
@@ -251,6 +301,7 @@ void ROS_Setup(std_msgs::Float32MultiArray &VAR) {
   nh.getHardware()->setConnection(server, serverPort);
   nh.initNode();
   nh.subscribe(cmd_vel);
+  nh.subscribe(manual_pot);
   nh.advertise(encoderFb);
   while (!nh.connected()) {
     ArduinoOTA.handle();

@@ -25,6 +25,7 @@ const double ki = 0;
 // Global variables
   
   // Time
+  unsigned long testtime = 0;
   unsigned long previousMicros = 0;
   const int calculate_interval = 150000;
 
@@ -66,7 +67,18 @@ void setup() {
 
 void loop() {
 
-  lmotor.setSpeed(60);
+  lmotor.setSpeed(700);
+  rmotor.setSpeed(700);
+  wait(2000);
+  lmotor.setSpeed(-700);
+  rmotor.setSpeed(-700);
+  wait(2000);
+  lmotor.setSpeed(-700);
+  rmotor.setSpeed(700);
+  wait(2000);
+  lmotor.setSpeed(700);
+  rmotor.setSpeed(-700);
+  wait(2000);
   
 }
 

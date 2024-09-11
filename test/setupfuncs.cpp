@@ -27,7 +27,7 @@
 
 void wait(int Time);
 void OTA_Setup();
-void ROS_Setup(std_msgs::Float32MultiArray &VAR);
+void ROS_Setup(IPAddress SERVER, const uint16_t SERVERPORT);
 void WIFI_Setup(const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET);
 
 // OTA setup function
@@ -71,31 +71,26 @@ void ROS_Setup(IPAddress SERVER, const uint16_t SERVERPORT) {
     // ROS variables and functions
     ros::NodeHandle nh; // Node handle object
     geometry_msgs::Twist rosvel;
-    std_msgs::Float32MultiArray encoderReadings;
-    ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", &velCb);
-    ros::Publisher encoderFb("encoder_fb", &encoderReadings);
 
     nh.getHardware()->setConnection(SERVER, SERVERPORT);
     nh.initNode();
-    nh.subscribe(cmd_vel);
-    nh.advertise(encoderFb);
     while (!nh.connected()) {
     ArduinoOTA.handle();
     nh.spinOnce();
     wait(800);
     }
-Serial.println(" ___                              _                                    ");
-Serial.println("|_ _|   ___ ___  _ __ ___   ___  | |_ ___    ___  ___ _ ____   _____   ");
-Serial.println(" | |   / __/ _ \\| '_ ` _ \\ / _ \\ | __/ _ \\  / __|/ _ \\ '__\\ \\ / / _ \\  ");
-Serial.println(" | |  | (_| (_) | | | | | |  __/ | || (_) | \\__ \\  __/ |   \\ V /  __/_ ");
-Serial.println("|___|  \\___\\___/|_| |_| |_|\\___|  \\__\\___/  |___/\\___|_|    \\_/ \\___( )");
-Serial.println("                                                                    |/ ");
-Serial.println("             _     _          _                                        _ ");
-Serial.println(" _ __   ___ | |_  | |_ ___   | |__   ___   ___  ___ _ ____   _____  __| |");
-Serial.println("| '_ \\ / _ \\| __| | __/ _ \\  | '_ \\ / _ \\ / __|/ _ \\ '__\\ \\ / / _ \\/ _` |");
-Serial.println("| | | | (_) | |_  | || (_) | | |_) |  __/ \\__ \\  __/ |   \\ V /  __/ (_| |");
-Serial.println("|_| |_|\\___/ \\__|  \\__\\___/  |_.__/ \\___| |___/\\___|_|    \\_/ \\___|\\__,_|");
-Serial.println();
+    Serial.println(" ___                              _                                    ");
+    Serial.println("|_ _|   ___ ___  _ __ ___   ___  | |_ ___    ___  ___ _ ____   _____   ");
+    Serial.println(" | |   / __/ _ \\| '_ ` _ \\ / _ \\ | __/ _ \\  / __|/ _ \\ '__\\ \\ / / _ \\  ");
+    Serial.println(" | |  | (_| (_) | | | | | |  __/ | || (_) | \\__ \\  __/ |   \\ V /  __/_ ");
+    Serial.println("|___|  \\___\\___/|_| |_| |_|\\___|  \\__\\___/  |___/\\___|_|    \\_/ \\___( )");
+    Serial.println("                                                                    |/ ");
+    Serial.println("             _     _          _                                        _ ");
+    Serial.println(" _ __   ___ | |_  | |_ ___   | |__   ___   ___  ___ _ ____   _____  __| |");
+    Serial.println("| '_ \\ / _ \\| __| | __/ _ \\  | '_ \\ / _ \\ / __|/ _ \\ '__\\ \\ / / _ \\/ _` |");
+    Serial.println("| | | | (_) | |_  | || (_) | | |_) |  __/ \\__ \\  __/ |   \\ V /  __/ (_| |");
+    Serial.println("|_| |_|\\___/ \\__|  \\__\\___/  |_.__/ \\___| |___/\\___|_|    \\_/ \\___|\\__,_|");
+    Serial.println();
 }
 
 void WIFI_Setup(const char* SSID, const char* PASSWD, const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET) {
@@ -115,4 +110,9 @@ void WIFI_Setup(const char* SSID, const char* PASSWD, const IPAddress IPV4, cons
 
 // Delay function that doesn't engage sleep mode
 void wait(int time) {
+  int lasttime = millis();
+  while ((millis() - lasttime) <= time) {
+    ArduinoOTA.handle();
+  }
+}
 #endif // SETUPFUNCS

@@ -24,7 +24,7 @@
 /// @return Converted value in RPM.
 float Converter::convertLinearToRPM(float VALUE)
 {
-    return (30*VALUE)/(M_PI*0.0276);
+    return (30*VALUE)/(M_PI*0.0275);
 }
 
 /// @brief Converts angular speed to RPM.
@@ -39,8 +39,8 @@ float Converter::convertAngularToRPM(float VALUE) {
 /// @return RPM value of each motor in a motorVel struct.
 MotorVel Converter::convertMessage(geometry_msgs::Twist MSG) {
 
-	float rRADS = 36.232*MSG.linear.x+2.246*MSG.angular.z;
-	float lRADS = 36.232*MSG.linear.x-2.246*MSG.angular.z;
+	float rRADS = 36.363*MSG.linear.x+2.244*MSG.angular.z;
+	float lRADS = 36.363*MSG.linear.x-2.244*MSG.angular.z;
 	float rRPM = Converter::convertAngularToRPM(-rRADS);
 	float lRPM = Converter::convertAngularToRPM(-lRADS);;
 	return {lRPM, rRPM};

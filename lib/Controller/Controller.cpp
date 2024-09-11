@@ -88,6 +88,6 @@ float Controller::convertToPWM(float VALUE) {
  */ 
 float Controller::controlMotor(float TARGET, float RPMMEASUREMENT) {
 
-    this->accumulated += this->convertToPWM(this->getControlSignal(TARGET, RPMMEASUREMENT));
+    this->accumulated = this->convertToPWM(this->getControlSignal(TARGET, RPMMEASUREMENT));
     return this->accumulated;
 }
