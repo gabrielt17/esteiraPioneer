@@ -62,14 +62,14 @@ void Encoder::calculateRPM()
 // Retorna o RPM
 float Encoder::getRPM(bool ISCLOCKWISE)
 {
-
+    Encoder::isCalculated = false;
     if (ISCLOCKWISE)
     {
         return -Encoder::rpm;
     } else {
         return Encoder::rpm;
     }
-    Encoder::isCalculated = false;
+    
 }
 
 void Encoder::resetCounter()

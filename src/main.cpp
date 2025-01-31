@@ -29,7 +29,8 @@
 #include <ros.h>
 #include <geometry_msgs/Pose2D.h>
 #include <std_msgs/Float32MultiArray.h>
-#include <lrpwm/Lrpwm.h>
+#include <custom_msgs/Encoder.h>
+#include <custom_msgs/Motor_power.h>
 
 #include <WiFi.h>
 #include <SimpleKalmanFilter.h>
@@ -50,11 +51,11 @@ const double rKI = 0;
 **********************************************************************/
 
 // WiFi
-const char* SSID = "TRIADE_FIBRA_VICTOR";
-const char* PASSWD = "Victor_1992@";
+const char* SSID = "NERo-Arena";
+const char* PASSWD = "BDPsystem10";
 
 // Encoder pulse count by rotation
-const uint8_t PULSESPERROTATION = 91; // Encoder pulses in a single spin
+const uint8_t PULSESPERROTATION = 183; // Encoder pulses in a single spin
 
 // Time
 const uint CALCULATERPM_INTERVAL = 50000; // Time to calculate RPM
@@ -85,9 +86,12 @@ SimpleKalmanFilter rkf = SimpleKalmanFilter(5, 5, 0.01);
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 // RPM target values
+
 MotorVel vel; // Stores the callback in RPM values
 
+
 // PWM target values
+
   // Both stores PWM from Controller or pwmCb
 float lpwm;
 float rpwm;
@@ -96,15 +100,15 @@ float rpwm;
 bool overrideCb = false;
 
 // ROS variables and functions
-IPAddress server(192,168,10,45); // MASTER IP
+IPAddress server(192,168,0,111); // MASTER IP
 const uint16_t serverPort = 11411; // TCP CONNECTION PORT
 ros::NodeHandle nh; // Node handle object
 geometry_msgs::Twist rosvel;
-std_msgs::Float32MultiArray encoderReadings;
-void ROS_Setup(std_msgs::Float32MultiArray &VAR);
+custom_msgs::Encoder encoderReadings;
+void ROS_Setup();
 void velCb(const geometry_msgs::Twist &MSG);
-void pwmCb(const lrpwm::Lrpwm &MSG);
-ros::Subscriber<lrpwm::Lrpwm> manual_pot("manual_pot", &pwmCb);
+void pwmCb(const custom_msgs::Motor_power &MSG);
+ros::Subscriber<custom_msgs::Motor_power> motor_pw("motor_pw", &pwmCb);
 ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", &velCb);
 ros::Publisher encoderFb("encoder_fb", &encoderReadings);
 
@@ -129,11 +133,12 @@ void setup() {
   Serial.print(" for details access: https://www.gnu.org/licenses/gpl-3.0.html.");
   Serial.print(" This is free software, and you are welcome to redistribute it");
   Serial.println(" under certain conditions; access https://www.gnu.org/licenses/gpl-3.0.html for details.");
-  wait(10000);
+  wait(1000);
 
   // WiFi Setup
-   // Network variables
-  IPAddress my_IP(192, 168, 10, 85);
+
+  // Network variables
+  IPAddress my_IP(192, 168, 0, 218);
   IPAddress gateway(192, 168, 0, 1);
   IPAddress subnet(255, 255, 255, 0);
   WIFI_Setup(my_IP, gateway, subnet);
@@ -145,23 +150,24 @@ void setup() {
   attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
   attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
   
-  // ROS setup
-  ROS_Setup(encoderReadings);
+ // ROS setup
+  ROS_Setup();
 
 }
 
 void loop() {
 
   if ((micros() - cbTimeout) >= CBTIMEOUT_INTERVAL) {
+
     vel.lrpm = 0;
     vel.rrpm = 0;
     lpwm = 0;
     rpwm = 0;
     overrideCb = false;
   }
-  Serial.print(overrideCb);
-  Serial.println();
+
   if (!overrideCb) {
+
     if ((micros() - lencoder.previousMicros) > CALCULATERPM_INTERVAL) {
       detachInterrupt(encoderAChannel2);
       detachInterrupt(encoderBChannel1);
@@ -179,25 +185,35 @@ void loop() {
     }
 
     if (lencoder.isCalculated) {
+      Serial.println(lencoder.pulses);
       float currentlRPM = lkf.updateEstimate(lencoder.getRPM(lmotor.isClockwise));
       lpwm = lcontroller.controlMotor(vel.lrpm, currentlRPM);
       lmotor.setSpeed(lpwm);
-      encoderReadings.data[0] = currentlRPM;
+      encoderReadings.leftRPM = currentlRPM;
       encoderFb.publish(&encoderReadings);
     }
 
     if (rencoder.isCalculated) {
+      Serial.println(rencoder.pulses);
       float currentrRPM = rkf.updateEstimate(rencoder.getRPM(rmotor.isClockwise));
       rpwm = rcontroller.controlMotor(vel.rrpm, currentrRPM);
       rmotor.setSpeed(rpwm);
-      encoderReadings.data[1] = currentrRPM;
+      encoderReadings.rightRPM = currentrRPM;
       encoderFb.publish(&encoderReadings);
     }
-  } else {
-    Serial.println("ESCREVENDO PWM");
+  } 
+  else {
     lmotor.setSpeed(lpwm);
     rmotor.setSpeed(rpwm);
+    float currentlRPM = lkf.updateEstimate(lencoder.getRPM(lmotor.isClockwise));
+    float currentrRPM = rkf.updateEstimate(rencoder.getRPM(rmotor.isClockwise));
+    encoderReadings.leftRPM = currentlRPM;
+    encoderFb.publish(&encoderReadings);
+    encoderReadings.rightRPM = currentrRPM;
+    encoderFb.publish(&encoderReadings);
   }
+
+  Serial.printf("Left: %d; Right: %d\n", lencoder.pulses, rencoder.pulses);
 
   ArduinoOTA.handle();
   nh.spinOnce();
@@ -210,12 +226,14 @@ void loop() {
 
 // Encoder ISR functions
 void IRAM_ATTR lencoderCounter() {
+
   portENTER_CRITICAL_ISR(&mux);
   lencoder.pulses++;
   portEXIT_CRITICAL_ISR(&mux);
 }
 
 void IRAM_ATTR rencoderCounter() {
+
   portENTER_CRITICAL_ISR(&mux);
   rencoder.pulses++;
   portEXIT_CRITICAL_ISR(&mux);
@@ -223,14 +241,15 @@ void IRAM_ATTR rencoderCounter() {
 
 // ROS motor velocity callback function
 void velCb(const geometry_msgs::Twist &MSG) {
+
   vel = Converter::convertMessage(MSG);
   cbTimeout = micros();
 }
 
-void pwmCb(const lrpwm::Lrpwm &MSG) {
-  Serial.println("MSG recebida.\n");
-  lpwm = static_cast<float>(MSG.pwm_motor_esquerdo*-10.23);
-  rpwm = static_cast<float>(MSG.pwm_motor_direito*-10.23);
+void pwmCb(const custom_msgs::Motor_power &MSG) {
+  
+  lpwm = static_cast<float>(MSG.leftPW*-10.23);
+  rpwm = static_cast<float>(MSG.rightPW*-10.23);
   Serial.printf("lpwm: %3.3f, rpwm: %3.3f\n", lpwm, rpwm);
   if (rpwm > 1023) {
     rpwm = 1023;
@@ -288,20 +307,12 @@ void OTA_Setup() {
 }
 
 // ROS setup function
-void ROS_Setup(std_msgs::Float32MultiArray &VAR) {
-
-  VAR.layout.dim = (std_msgs::MultiArrayDimension*)malloc(sizeof(std_msgs::MultiArrayDimension));
-  VAR.layout.dim[0].label = "encoderFb";
-  VAR.layout.dim[0].size = 2;
-  VAR.layout.dim[0].stride = 2;
-  VAR.layout.data_offset = 0;
-  VAR.data_length = 2;
-  VAR.data = (float*)malloc(sizeof(float) * 2);
+void ROS_Setup() {
 
   nh.getHardware()->setConnection(server, serverPort);
   nh.initNode();
   nh.subscribe(cmd_vel);
-  nh.subscribe(manual_pot);
+  nh.subscribe(motor_pw);
   nh.advertise(encoderFb);
   while (!nh.connected()) {
     ArduinoOTA.handle();

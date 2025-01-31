@@ -38,12 +38,12 @@
 /**********************************************************************
 * PID constants
 **********************************************************************/
-const double lKP = 14;
-const double lKD = 0;
+const double lKP = 2.0401663533082357/30;
+const double lKD = 2.0401663533082357/2000;
 const double lKI = 0;
 
-const double rKP = 0;
-const double rKD = 0;
+const double rKP = 0.792/30;
+const double rKD = 0.792/2000;
 const double rKI = 0;
 
 /**********************************************************************
@@ -56,6 +56,7 @@ const char* PASSWD = "BDPsystem10";
 
 // Encoder pulse count by rotation
 const uint8_t PULSESPERROTATION = 91; // Encoder pulses in a single spin
+const uint8_t TOLERANCE = 3;
 
 // Time
 const uint CALCULATERPM_INTERVAL = 50000; // Time to calculate RPM
@@ -73,7 +74,7 @@ Motor lmotor(AIN1, AIN2, PWMA);
 Motor rmotor(BIN1, BIN2, PWMB, 1);
 
 // Encoder A (LEFT)
-Encoder lencoder(encoderAChannel2, PULSESPERROTATION);
+Encoder lencoder(encoderAChannel1, PULSESPERROTATION);
 
 // Encoder B (RIGHT)
 Encoder rencoder(encoderBChannel1, PULSESPERROTATION);
@@ -85,11 +86,32 @@ SimpleKalmanFilter rkf = SimpleKalmanFilter(5, 5, 0.01);
 // Critical session initializer
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
+// RPM target values
+
+MotorVel vel; // Stores the callback in RPM values
+
+
 // PWM target values
 
   // Both stores PWM from Controller or pwmCb
 float lpwm;
 float rpwm;
+
+// If the user sets a manual PWM value, then the controller main loop will be turned off
+bool overrideCb = false;
+
+// ROS variables and functions
+IPAddress server(192,168,0,112); // MASTER IP
+const uint16_t serverPort = 11411; // TCP CONNECTION PORT
+ros::NodeHandle nh; // Node handle object
+geometry_msgs::Twist rosvel;
+custom_msgs::Encoder encoderReadings;
+void ROS_Setup();
+void velCb(const geometry_msgs::Twist &MSG);
+void pwmCb(const custom_msgs::Motor_power &MSG);
+ros::Subscriber<custom_msgs::Motor_power> motor_pw("motor_pw", &pwmCb);
+ros::Subscriber<geometry_msgs::Twist> cmd_vel("cmd_vel", &velCb);
+ros::Publisher encoderFb("encoder_fb", &encoderReadings);
 
 /**********************************************************************
 * Function prototypes (declarations)
@@ -97,9 +119,12 @@ float rpwm;
 void wait(int Time);
 void IRAM_ATTR lencoderCounter();
 void IRAM_ATTR rencoderCounter();
+void lCalculate();
+void rCalculate();
 
 void setup() {
 
+  // Initalizing serial
   Serial.begin(115200);
 
   // Attach encoder ISR's
@@ -110,41 +135,63 @@ void setup() {
 
 void loop() {
 
-  float currentrRPM;
-  float currentlRPM;
-  float target = 200.0;
+  int pwm = -300;
+  while (pwm <= 1023) {
 
-  if ((micros() - lencoder.previousMicros) > CALCULATERPM_INTERVAL) {
-    detachInterrupt(encoderAChannel2);
-    detachInterrupt(encoderBChannel1);
-    lencoder.calculateRPM();
-    attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
-    attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
+    if (pwm > 1023) {
+      pwm = 1023;
+    }
+
+    lmotor.setSpeed(pwm);
+    rmotor.setSpeed(pwm);
+
+    wait(3000);
+
+    Serial.println(lencoder.pulses);
+
+    while (!lencoder.isCalculated) {
+      lCalculate();
+      wait(200);
+    }
+
+    float currentlRPM = lencoder.getRPM(lmotor.isClockwise);
+    float lastReading = currentlRPM;
+
+    wait(1000);
+
+    while (!lencoder.isCalculated) {
+      lCalculate();
+      wait(200);
+    }
+
+    currentlRPM = lencoder.getRPM(lmotor.isClockwise);
+
+    if (abs(currentlRPM - lastReading) <= TOLERANCE) {
+      Serial.printf("%d;%3.3f\n", pwm, currentlRPM);
+      lmotor.setSpeed(0);
+      rmotor.setSpeed(0);
+      wait(500);
+      pwm += 10;
+    }
+
+    
   }
 
-  if ((micros() - rencoder.previousMicros) > CALCULATERPM_INTERVAL) {
-    detachInterrupt(encoderBChannel1);
-    detachInterrupt(encoderAChannel2);
-    rencoder.calculateRPM();
-    attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
-    attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
-  }
+  // int pwm = -1023;
+  // while (pwm <= 1023) {
+  //   if (pwm > 1023) {
+  //     pwm = 1023;
+  //   }
+  //   lmotor.setSpeed(pwm);
+  //   rmotor.setSpeed(pwm);
 
-  if (lencoder.isCalculated) {
-    currentlRPM = lkf.updateEstimate(lencoder.getRPM(lmotor.isClockwise));
-    lpwm = lcontroller.controlMotor(target, currentlRPM);
-    lmotor.setSpeed(lpwm);
-  }
-
-  if (rencoder.isCalculated) {
-    currentrRPM = rkf.updateEstimate(rencoder.getRPM(rmotor.isClockwise));
-    rpwm = rcontroller.controlMotor(target, currentrRPM);
-    rmotor.setSpeed(rpwm);
-  }
-
-  ArduinoOTA.handle();
-  Serial.printf(">target:%3.3f\n>currentlrpm:%3.3f\n", target, currentlRPM);
-  wait(300);
+  //   while (!rencoder.isCalculated) {
+  //     rCalculate();
+  //     wait(3000);
+  //   }
+  //   float currentrRPM = lkf.updateEstimate(rencoder.getRPM(lmotor.isClockwise));
+  //   Serial.printf("%d;%3.3f", pwm, currentrRPM);
+  // }
 }
 
 /**********************************************************************
@@ -164,6 +211,58 @@ void IRAM_ATTR rencoderCounter() {
   portENTER_CRITICAL_ISR(&mux);
   rencoder.pulses++;
   portEXIT_CRITICAL_ISR(&mux);
+}
+
+// ROS motor velocity callback function
+void velCb(const geometry_msgs::Twist &MSG) {
+
+  vel = Converter::convertMessage(MSG);
+  cbTimeout = micros();
+}
+
+void pwmCb(const custom_msgs::Motor_power &MSG) {
+  
+  lpwm = static_cast<float>(MSG.leftPW*-10.23);
+  rpwm = static_cast<float>(MSG.rightPW*-10.23);
+  Serial.printf("lpwm: %3.3f, rpwm: %3.3f\n", lpwm, rpwm);
+  if (rpwm > 1023) {
+    rpwm = 1023;
+  }
+  else if (rpwm < -1023)
+  {
+    rpwm = -1023;
+  }
+
+  if (lpwm > 1023) {
+    lpwm = 1023;
+  }
+  else if (lpwm < -1023)
+  {
+    lpwm = -1023;
+  }
+
+  overrideCb = true;
+  cbTimeout = micros();
+}
+
+void lCalculate() {
+  if ((micros() - lencoder.previousMicros) > CALCULATERPM_INTERVAL) {
+    detachInterrupt(encoderAChannel2);
+    detachInterrupt(encoderBChannel1);
+    lencoder.calculateRPM();
+    attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
+    attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
+  }
+}
+
+void rCalculate() {
+  if ((micros() - rencoder.previousMicros) > CALCULATERPM_INTERVAL) {
+    detachInterrupt(encoderBChannel1);
+    detachInterrupt(encoderAChannel2);
+    rencoder.calculateRPM();
+    attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
+    attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
+  }
 }
 
 // Delay function that doesn't engage sleep mode
