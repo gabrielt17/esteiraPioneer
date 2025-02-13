@@ -21,33 +21,29 @@
 
 #include <Arduino.h>
 
-/**
- * @param ENCODERPIN Encoder signal pin
- * @param PULSESPEROTATION Number of pulses on a single spin
- * @param POWERPIN Encoder power pin, in case there is one. Leave blank if none
- * @brief Disclaimer: You have to manually create the ISR functions and attach/detach them
- */
-class Encoder {
-    private:
+extern portMUX_TYPE mux;
 
-        const uint8_t powerPin;
-        uint pulsesPerRotation;
-        float rpm;
-        
-        const uint8_t encoderPin;
-        void setupArduino(bool POWER, uint8_t POWERPIN);       
+class Encoder
+{
+public:
+    Encoder(uint8_t ENCODERPIN, uint PULSESPEROTATION, uint8_t POWERPIN);
+    Encoder(uint8_t ENCODERPIN, uint PULSESPEROTATION);
 
-    public:
+    unsigned long previousMicros;
+    bool isCalculated;
+    volatile uint pulses;
+    void calculateRPM();
+    float getRPM(bool ISCLOCKWISE) const;
+    void resetCounter();
 
-        unsigned long previousMicros = 0;
-        bool isCalculated;
-        
-        Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, const uint8_t& POWERPIN);
-        Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION);
-        void calculateRPM();
-        float getRPM(bool ISCLOCKWISE);
-        void resetCounter();
-        volatile uint pulses;
+private:
+    void setupArduino(bool POWER, uint8_t POWERPIN);
+
+    uint8_t encoderPin;
+    uint pulsesPerRotation;
+    uint8_t powerPin;
+    float rpm;
+    
 };
 
 #endif // ENCODER_H

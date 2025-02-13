@@ -1,93 +1,66 @@
-/*
-*    ASTROS, a Pioneer P3-DX inspired robot.
-*    Copyright (C) <2024>  <Gabriel Víctor and Hiago Batista>
-*
-*    This program is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation, either version 3 of the License, or
-*    (at your option) any later version.
-*
-*    This program is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU General Public License for more details.
-*
-*    You should have received a copy of the GNU General Public License
-*    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
-
 #include "Controller.h"
 
 /** @brief
  * Class constructor
  * @param KP Proporcional gain constant. Should be the biggest value of
- *all three.
+ * all three.
  * @param KD Derivative gain constant. Should be smaller compared to KP.
- * @param KI Integrative gain constant. Should even smaller than KP and KD.
+ * @param KI Integrative gain constant. Should be even smaller than KP and KD.
  */
 Controller::Controller(float KP, float KD, float KI) 
-: kp(KP), kd(KD), ki(KI) {
+: kp(KP), kd(KD), ki(KI), previousMicros(0), previousError(0), i(0), accumulated(0) {
 }
 
 /** @brief
- * Calculates the control signal to the given parameters
- * @param 
+ * Calculates the control signal to the given parameters.
  */ 
 float Controller::getControlSignal(float TARGET, float RPMMEASUREMENT) {
 
     // Time in which the error was registered
     unsigned long currentMicros = micros();
-
-    // Error and time intervals calculations
-    float deltaMicros = static_cast<float>((currentMicros-previousMicros))/(1e6);
+    float deltaMicros = static_cast<float>(currentMicros - previousMicros) / 1e6;
+    
+    // Calculate error
     float error = TARGET - RPMMEASUREMENT;
-    float deltaError = error-previousError;
-    if (fabs(error) < 3) {
-        return 0;
+    float deltaError = error - previousError;
+    const float errorThreshold = 1.0;
+
+    // If error is small, reduce control effort smoothly
+    if (fabs(error) < errorThreshold) {
+        return accumulated * 0.9;
     } 
 
-    // Time the last error measurement was taken
+    // Update previous time
     previousMicros = currentMicros;
 
-    // Proporcional formula
-    float r = error*this->kp;
+    // Proportional term
+    float r = error * kp;
 
-    // Derivative formula
-    float d = (deltaError/deltaMicros)*this->kd;
+    // Derivative term (only if delta time is reasonable)
+    float d = (deltaMicros > 1e-6) ? (deltaError / deltaMicros) * kd : 0;
 
-    // Integrative formula
-    this->i += error*this->ki*deltaMicros;
+    // Integrative term (prevent integral windup)
+    i += error * ki * deltaMicros;
+    const float iMax = 500.0;
+    if (i > iMax) i = iMax;
+    if (i < -iMax) i = -iMax;
 
-    // Control signal equation
+    // Control signal
     float u = r + d + i;
 
-    // Registers tjh
-    this->previousError = error;
+    // Save previous error
+    previousError = error;
     
     return u;
 }
 
-// Converts the given control signal into a 10-bit PWM value
-float Controller::convertToPWM(float VALUE) {
-    
-    float pwm = VALUE;
-    if (pwm > 1023) {
-        pwm = 1023;
-    }
-    else if (pwm < -1023)
-    {
-        pwm = -1023;
-    }
-
-    return pwm;
-}
-
 /** @brief
- * Combines the previous methods into one. Accumulates the control singal.
- *  
+ * Combines the previous methods into one. Accumulates the control signal.
  */ 
 float Controller::controlMotor(float TARGET, float RPMMEASUREMENT) {
+    float u = getControlSignal(TARGET, RPMMEASUREMENT);
+    u = constrain(u, -1023, 1023);
 
-    this->accumulated = this->convertToPWM(this->getControlSignal(TARGET, RPMMEASUREMENT));
-    return this->accumulated;
+
+    return u;
 }

@@ -19,25 +19,25 @@
 #include "Encoder.h"
 
 /** @brief Construtor que leva em consideração a existência de um pino
- *de alimentação.
+ * de alimentação.
  */
-Encoder::Encoder(const uint8_t &ENCODERPIN, const uint8_t &PULSESPEROTATION, const uint8_t &POWERPIN)
-    : encoderPin(ENCODERPIN), pulsesPerRotation(PULSESPEROTATION), powerPin(POWERPIN), pulses(0), rpm(0), previousMicros(0)
+Encoder::Encoder(uint8_t ENCODERPIN, uint PULSESPEROTATION, uint8_t POWERPIN)
+    : encoderPin(ENCODERPIN), pulsesPerRotation(PULSESPEROTATION), powerPin(POWERPIN), pulses(0), rpm(0), previousMicros(0), isCalculated(false)
 {
-    Encoder::setupArduino(true, Encoder::powerPin);
+    setupArduino(true, powerPin);
 }
 
 // Construtor sem pino de alimentação
-Encoder::Encoder(const uint8_t &ENCODERPIN, const uint8_t &PULSESPEROTATION)
-    : encoderPin(ENCODERPIN), powerPin(0), pulses(0), rpm(0), previousMicros(0), pulsesPerRotation(PULSESPEROTATION)
+Encoder::Encoder(uint8_t ENCODERPIN, uint PULSESPEROTATION)
+    : encoderPin(ENCODERPIN), pulsesPerRotation(PULSESPEROTATION), powerPin(0), pulses(0), rpm(0), previousMicros(0), isCalculated(false)
 {
-    Encoder::setupArduino(false, 0);
+    setupArduino(false, 0);
 }
 
 // Configuração do Arduino
 void Encoder::setupArduino(bool POWER, uint8_t POWERPIN)
 {
-    pinMode(Encoder::encoderPin, INPUT);
+    pinMode(encoderPin, INPUT);
     if (POWER)
     {
         pinMode(POWERPIN, OUTPUT);
@@ -47,32 +47,36 @@ void Encoder::setupArduino(bool POWER, uint8_t POWERPIN)
 
 // Calcula o RPM
 void Encoder::calculateRPM()
-{
-
+{   
+    portENTER_CRITICAL_ISR(&mux);
     unsigned long currentMicros = micros();
-    unsigned long deltaMicros = currentMicros - Encoder::previousMicros;
-
-
-    Encoder::rpm = 60 * (static_cast<double>(this->pulses) / Encoder::pulsesPerRotation) / (static_cast<double>(deltaMicros) / 1e6);
-    this->resetCounter();
-    Encoder::previousMicros = currentMicros;
-    Encoder::isCalculated = true;
+    unsigned long deltaMicros = currentMicros - previousMicros;
+    
+    if (deltaMicros > 50e3)
+    {
+        rpm = 60.0 * (static_cast<double>(pulses) / pulsesPerRotation) / (static_cast<double>(deltaMicros) / 1e6);
+    }
+    // else
+    // {
+    //     rpm = 0; // Evita divisão por zero
+    // }
+    
+    resetCounter();
+    previousMicros = currentMicros;
+    isCalculated = true;
+    portEXIT_CRITICAL_ISR(&mux);
 }
 
 // Retorna o RPM
-float Encoder::getRPM(bool ISCLOCKWISE)
+float Encoder::getRPM(bool ISCLOCKWISE) const
 {
-    Encoder::isCalculated = false;
-    if (ISCLOCKWISE)
-    {
-        return -Encoder::rpm;
-    } else {
-        return Encoder::rpm;
-    }
-    
+    return ISCLOCKWISE ? -rpm : rpm;
 }
 
+// Reseta o contador de pulsos
 void Encoder::resetCounter()
 {
-    this->pulses = 0;
+    portENTER_CRITICAL_ISR(&mux);
+    pulses = 0;
+    portEXIT_CRITICAL_ISR(&mux);
 }

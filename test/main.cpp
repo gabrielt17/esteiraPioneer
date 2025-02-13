@@ -38,12 +38,12 @@
 /**********************************************************************
 * PID constants
 **********************************************************************/
-const double lKP = 2.0401663533082357/30;
-const double lKD = 2.0401663533082357/2000;
-const double lKI = 0;
+const double lKP = 5.0;
+const double lKD = 0;
+const double lKI = 0.05;
 
-const double rKP = 0.792/30;
-const double rKD = 0.792/2000;
+const double rKP = 0;
+const double rKD = 0;
 const double rKI = 0;
 
 /**********************************************************************
@@ -72,15 +72,24 @@ Motor lmotor(AIN1, AIN2, PWMA);
 // Motor B (RIGHT)
 Motor rmotor(BIN1, BIN2, PWMB, 1);
 
-// Encoder A (LEFT)
+// ISR variables
+volatile bool lencodertrigger = false;
+volatile bool rencodertrigger = false;
+volatile int numberOfEncoderInterrupts = 0;
+
+// Encoder A (LEFT)// ISR variables
+volatile bool lencodertrigger = false;
+volatile bool rencodertrigger = false;
+volatile int numberOfEncoderInterrupts = 0;
 Encoder lencoder(encoderAChannel2, PULSESPERROTATION);
 
 // Encoder B (RIGHT)
 Encoder rencoder(encoderBChannel1, PULSESPERROTATION);
 
+
 // Kalman filter
-SimpleKalmanFilter lkf = SimpleKalmanFilter(5, 5, 0.01);
-SimpleKalmanFilter rkf = SimpleKalmanFilter(5, 5, 0.01);
+SimpleKalmanFilter lkf = SimpleKalmanFilter(1, 1, 0.001);
+SimpleKalmanFilter rkf = SimpleKalmanFilter(1, 1, 0.001);
 
 // Critical session initializer
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
@@ -100,7 +109,7 @@ float rpwm;
 bool overrideCb = false;
 
 // ROS variables and functions
-IPAddress server(192,168,0,111); // MASTER IP
+IPAddress server(192,168,0,115); // MASTER IP
 const uint16_t serverPort = 11411; // TCP CONNECTION PORT
 ros::NodeHandle nh; // Node handle object
 geometry_msgs::Twist rosvel;
@@ -123,6 +132,7 @@ void WIFI_Setup(const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress S
 
 void setup() {
 
+ 
   // Initalizing serial
   Serial.begin(115200);
   wait(2000);
@@ -137,69 +147,87 @@ void setup() {
 
   // WiFi Setup
 
-  // Network variables
-  IPAddress my_IP(192, 168, 0, 218);
-  IPAddress gateway(192, 168, 0, 1);
-  IPAddress subnet(255, 255, 255, 0);
-  WIFI_Setup(my_IP, gateway, subnet);
+  // // Network variables
+  // IPAddress my_IP(192, 168, 0, 218);
+  // IPAddress gateway(192, 168, 2, 1);
+  // IPAddress subnet(255, 255, 255, 0);
+  // WIFI_Setup(my_IP, gateway, subnet);
 
-  // OTA setup
-  OTA_Setup();
+  // // OTA setup
+  // OTA_Setup();
 
   // Attach encoder ISR's
   attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
   attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
   
- // ROS setup
-  ROS_Setup();
+  // // ROS setup
+  // ROS_Setup();
 
 }
 
 void loop() {
 
-  if ((micros() - cbTimeout) >= CBTIMEOUT_INTERVAL) {
+  // if ((micros() - cbTimeout) >= CBTIMEOUT_INTERVAL) {
 
-    vel.lrpm = 0;
-    vel.rrpm = 0;
-    lpwm = 0;
-    rpwm = 0;
-    overrideCb = false;
+  //   vel.lrpm = 0;
+  //   vel.rrpm = 0;
+  //   lpwm = 0;
+  //   rpwm = 0;
+  //   overrideCb = false;
+  // }
+
+  int target = 29;
+  vel.lrpm = target;
+  vel.rrpm = vel.lrpm;
+
+  float leftspeed = 0;
+  float rightspeed = 0;
+
+  if (numberOfEncoderInterrupts != 0) {
+    
+    // In case the left encoder ISR was called, we count +1 to his pulses
+    if (lencodertrigger) {
+      lencoder.pulses++;
+      lencodertrigger = false;
+    }
+
+    // Else, if the purple counter gets triggered, +1 in it's counter
+    else if (rencodertrigger) {
+      rencoder.pulses++;
+      rencodertrigger = false;
+    }
+
+    portENTER_CRITICAL_ISR(&mux);
+    numberOfEncoderInterrupts = 0;  // Resets the cycle
+    portEXIT_CRITICAL_ISR(&mux);
   }
 
   if (!overrideCb) {
 
-    if ((micros() - lencoder.previousMicros) > CALCULATERPM_INTERVAL) {
-      detachInterrupt(encoderAChannel2);
-      detachInterrupt(encoderBChannel1);
+    if ((micros() - lencoder.previousMicros) > CALCULATERPM_INTERVAL) { 
       lencoder.calculateRPM();
-      attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
-      attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
     }
 
     if ((micros() - rencoder.previousMicros) > CALCULATERPM_INTERVAL) {
-      detachInterrupt(encoderBChannel1);
-      detachInterrupt(encoderAChannel2);
       rencoder.calculateRPM();
-      attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
-      attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
     }
 
     if (lencoder.isCalculated) {
-      Serial.println(lencoder.pulses);
-      float currentlRPM = lkf.updateEstimate(lencoder.getRPM(lmotor.isClockwise));
+      float currentlRPM = lencoder.getRPM(lmotor.isClockwise);
+      leftspeed = currentlRPM;
       lpwm = lcontroller.controlMotor(vel.lrpm, currentlRPM);
       lmotor.setSpeed(lpwm);
-      encoderReadings.leftRPM = currentlRPM;
-      encoderFb.publish(&encoderReadings);
+      // encoderReadings.leftRPM = currentlRPM;
+      // encoderFb.publish(&encoderReadings);
     }
 
     if (rencoder.isCalculated) {
-      Serial.println(rencoder.pulses);
-      float currentrRPM = rkf.updateEstimate(rencoder.getRPM(rmotor.isClockwise));
+      float currentrRPM = rencoder.getRPM(rmotor.isClockwise);
+      rightspeed = currentrRPM;
       rpwm = rcontroller.controlMotor(vel.rrpm, currentrRPM);
       rmotor.setSpeed(rpwm);
-      encoderReadings.rightRPM = currentrRPM;
-      encoderFb.publish(&encoderReadings);
+      // encoderReadings.rightRPM = currentrRPM;
+      // encoderFb.publish(&encoderReadings);
     }
   } 
   else {
@@ -207,17 +235,18 @@ void loop() {
     rmotor.setSpeed(rpwm);
     float currentlRPM = lkf.updateEstimate(lencoder.getRPM(lmotor.isClockwise));
     float currentrRPM = rkf.updateEstimate(rencoder.getRPM(rmotor.isClockwise));
-    encoderReadings.leftRPM = currentlRPM;
-    encoderFb.publish(&encoderReadings);
-    encoderReadings.rightRPM = currentrRPM;
-    encoderFb.publish(&encoderReadings);
+    // encoderReadings.leftRPM = currentlRPM;
+    // encoderFb.publish(&encoderReadings);
+    // encoderReadings.rightRPM = currentrRPM;
+    // encoderFb.publish(&encoderReadings);
   }
 
-  Serial.printf("Left: %d; Right: %d\n", lencoder.pulses, rencoder.pulses);
+  // Serial.printf("Left:%d; Right:%d\n", lencoder.pulses, rencoder.pulses);
+  Serial.printf(">Control Signal:%3.3f\n", lcontroller.getControlSignal(target, lencoder.getRPM(lmotor.isClockwise)));
+  Serial.printf(">Left speed:%3.1f\nRight speed:%3.1f\n>Target:%d\n", leftspeed, rightspeed, target);
 
-  ArduinoOTA.handle();
-  nh.spinOnce();
-  wait(10);
+  // ArduinoOTA.handle();
+  // nh.spinOnce();
 }
 
 /**********************************************************************
@@ -228,14 +257,16 @@ void loop() {
 void IRAM_ATTR lencoderCounter() {
 
   portENTER_CRITICAL_ISR(&mux);
-  lencoder.pulses++;
+  lencodertrigger = true;
+  numberOfEncoderInterrupts++;
   portEXIT_CRITICAL_ISR(&mux);
 }
 
 void IRAM_ATTR rencoderCounter() {
 
   portENTER_CRITICAL_ISR(&mux);
-  rencoder.pulses++;
+  rencodertrigger = true;
+  numberOfEncoderInterrupts++;
   portEXIT_CRITICAL_ISR(&mux);
 }
 
@@ -335,7 +366,7 @@ void ROS_Setup() {
 }
 
 void WIFI_Setup(const IPAddress IPV4, const IPAddress GATEWAY, const IPAddress SUBNET) {
-   if (!WiFi.config(IPV4, GATEWAY, SUBNET)) {
+  if (!WiFi.config(IPV4, GATEWAY, SUBNET)) {
     Serial.println("The static IP setup failed.");
   }
   WiFi.begin(SSID, PASSWD);
