@@ -23,7 +23,7 @@
 
 #include <Arduino.h>
 #include <Motor.h>
-#include <Converter.cpp>
+#include <Kinematics.h>
 #include <Controller.h>
 #include <Encoder.h>
 #include <ros.h>
@@ -33,11 +33,11 @@
 #include <SimpleKalmanFilter.h>
 
 // Encoder pulse count by rotation
-const int PULSERPERROTATION = 38;
+const int PULSERPERROTATION = 8;
 
 // PID Controller constants
 const double kp = 0.792/30;
-const double kd = 0.792/2000;
+const double kd = 0;
 const double ki = 0;
 
 // Global variables
@@ -47,8 +47,10 @@ const double ki = 0;
   const char* pw = "BDPsystem10";
   
   // Time
-  const int calculateRPM_interval = 50000;
-  const int callback_interval = 1000000;
+  const int CALCULATERPM_INTERVAL = 50000;
+  const long SAMPLE_TIME_MICROS = 20000;
+  unsigned long LAST_SAMPLE_TIME = 0;
+  const int CALLBACK_INTERVAL = 1000000;
   unsigned long currentCb_timer = 0;
   unsigned long currentMicrosA, currentMicrosB = 0;
 
@@ -81,7 +83,7 @@ void IRAM_ATTR rencoderCounter();
 void messageCb(const geometry_msgs::Twist &MSG);
 
 // ROS variables
-IPAddress server(192,168,0,118); // MASTER IP
+IPAddress server(192,168,0,115); // MASTER IP
 const uint16_t serverPort = 11411; // TCP CONNECTION
 ros::NodeHandle nh;
 geometry_msgs::Twist msg;
@@ -125,45 +127,46 @@ void setup() {
 
 void loop() {
 
-  float tmpproc = millis();
+  if (micros() - LAST_SAMPLE_TIME >= SAMPLE_TIME_MICROS) {
+    LAST_SAMPLE_TIME = micros();
+    
+    // Ler os encoders
 
-  if ((micros() - currentCb_timer) >= callback_interval) {
-    rpm = {0,0};
-  }
+    // Copias os pulsos para variáveis auxiliares de forma segura
+    // e as reseta
+    portENTER_CRITICAL(&mux);
+    long lpulses = lencoder.pulses;
+    lencoder.pulses = 0;
+    long rpulses = rencoder.pulses;
+    rencoder.pulses = 0;
+    portEXIT_CRITICAL(&mux);
 
-  if ((micros() - lencoder.previousMicros) > calculateRPM_interval) {
-    Serial.println(micros() - lencoder.previousMicros);
-    detachInterrupt(encoderAChannel2);
-    detachInterrupt(encoderBChannel1);
-    lencoder.calculateRPM();
-    attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
-    attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
-  }
+    // Calcula o RPM para cada motor com base nos pulsos coletados
+    lencoder.calculateRPM(lpulses, SAMPLE_TIME_MICROS);
+    rencoder.calculateRPM(rpulses, SAMPLE_TIME_MICROS);
 
-  if ((micros() - rencoder.previousMicros) > calculateRPM_interval) {
-    detachInterrupt(encoderBChannel1);
-    detachInterrupt(encoderAChannel2);
-    rencoder.calculateRPM();
-    attachInterrupt(encoderAChannel2, lencoderCounter, RISING);
-    attachInterrupt(encoderBChannel1, rencoderCounter, RISING);
-  }
-  
-  if (1) {
+    // Filtra os valores de RPM para suavizar a leitura
     float currentlRPM = lkf.updateEstimate(lencoder.getRPM(lmotor.isClockwise));
-    //Serial.printf(" RPM MEDIDO: %3.3f ", lencoder.getRPM(lmotor.isClockwise));
-    encodermsg.x = currentlRPM;
-    encodermsg.y = lencoder.getRPM(lmotor.isClockwise);
-    encodermsg.theta = lencoder.pulses;
-    float lpwm = lcontroller.controlMotor(rpm.lrpm, currentlRPM);
-    lmotor.setSpeed(lpwm);
-    pub_encoder.publish(&encodermsg);
-    Serial.printf(">encoder:%3.3f\n>alvo:%3.3f\n", currentlRPM, rpm.lrpm );
-  }
-  if (1) {
     float currentrRPM = rkf.updateEstimate(rencoder.getRPM(rmotor.isClockwise));
-    encodermsg.y = currentrRPM;
+
+    // Lógica de controle PID
+
+    if ((micros() - currentCb_timer) >= CALLBACK_INTERVAL) {
+        rpm = {0, 0}; // Define o alvo como 0 se não receber comandos
+    }
+
+    // Calcula o PWM necessário para cada motor usando o controlador corrigido
+    float lpwm = lcontroller.controlMotor(rpm.lrpm, currentlRPM);
     float rpwm = rcontroller.controlMotor(rpm.rrpm, currentrRPM);
+
+    // **PASSO 3: ATUAR NOS MOTORES**
+    lmotor.setSpeed(lpwm);
     rmotor.setSpeed(rpwm);
+    
+    // (Opcional) Publicar dados de feedback via ROS
+    // É melhor publicar aqui para ter uma taxa consistente
+    encodermsg.x = currentlRPM;
+    encodermsg.y = currentrRPM;
     pub_encoder.publish(&encodermsg);
   }
  

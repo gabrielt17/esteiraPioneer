@@ -26,9 +26,8 @@ class Encoder {
         
         Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION, const uint8_t& POWERPIN);
         Encoder(const uint8_t& ENCODERPIN, const uint8_t& PULSESPEROTATION);
-        void calculateRPM();
+        void calculateRPM(long currentPulses, unsigned long sampleTime);
         float getRPM(bool ISCLOCKWISE);
-        void resetCounter();
         volatile uint pulses;
 };
 

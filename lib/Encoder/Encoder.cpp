@@ -29,16 +29,16 @@ void Encoder::setupArduino(bool POWER, uint8_t POWERPIN)
 }
 
 // Calcula o RPM
-void Encoder::calculateRPM()
-{
+void Encoder::calculateRPM(long currentPulses, unsigned long sampleTime)
+{  
 
-    unsigned long currentMicros = micros();
-    unsigned long deltaMicros = currentMicros - Encoder::previousMicros;
+    if (sampleTime == 0) { // Evitar divisão por zero
+        this->rpm = 0.0f;
+        Encoder::isCalculated = true;
+        return;
+    }
 
-
-    Encoder::rpm = 60 * (static_cast<double>(this->pulses) / Encoder::pulsesPerRotation) / (static_cast<double>(deltaMicros) / 1e6);
-    this->resetCounter();
-    Encoder::previousMicros = currentMicros;
+    this->rpm = (static_cast<float>(currentPulses) / pulsesPerRotation) * (1000000.0f / static_cast<float>(sampleTime)) * 60.0f;
     Encoder::isCalculated = true;
 }
 
@@ -53,9 +53,4 @@ float Encoder::getRPM(bool ISCLOCKWISE)
         return Encoder::rpm;
     }
     Encoder::isCalculated = false;
-}
-
-void Encoder::resetCounter()
-{
-    this->pulses = 0;
 }
